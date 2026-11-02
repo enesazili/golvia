@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: golvia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: golvia
+    ports:
+      - "127.0.0.1:5437:5432"
+    volumes:
+      - football-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U golvia -d golvia"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  football-data:

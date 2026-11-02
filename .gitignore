@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.env*
+!.env.example
+next-env.d.ts
+
+data/.wikidata-*.sqlite*
+data/.wikidata-progress.json
+data/football-*.json
+data/club-catalog.top100.progress.json
+data/club-catalog.top100.review.json
+data/club-catalog.top100.json.backup-*
+*.tmp

@@ -1,0 +1,42 @@
+{
+  "name": "golvia",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "db:migrate": "node --env-file=.env --import tsx scripts/database.ts migrate",
+    "db:import": "node --env-file=.env --import tsx scripts/database.ts import",
+    "test:db": "node --env-file=.env --import tsx --test tests/database.integration.ts",
+    "test:http": "tsx --test tests/http.integration.ts",
+    "socket": "node --env-file=.env --import tsx src/server/socketServer.ts",
+    "data:fetch": "tsx scripts/wikidata-fetch.ts",
+    "data:check": "tsx scripts/quality-check.ts"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "pg": "^8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "^0.0.1",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^24",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9"
+  },
+  "type": "module"
+}

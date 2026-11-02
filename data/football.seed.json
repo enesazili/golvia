@@ -1,0 +1,304 @@
+{
+  "version": "verified-starter-2026-11-01-v1",
+  "sources": [
+    {
+      "id": "wd-ronaldo",
+      "url": "https://www.wikidata.org/w/index.php?title=Q11571&oldid=2560195159",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-messi",
+      "url": "https://www.wikidata.org/w/index.php?title=Q615&oldid=2561753201",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-figo",
+      "url": "https://www.wikidata.org/w/index.php?title=Q483145&oldid=2558137249",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-dimaria",
+      "url": "https://www.wikidata.org/w/index.php?title=Q251683&oldid=2562507707",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-real",
+      "url": "https://www.wikidata.org/w/index.php?title=Q8682&oldid=2560947415",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-barca",
+      "url": "https://www.wikidata.org/w/index.php?title=Q7156&oldid=2562671913",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-portugal",
+      "url": "https://www.wikidata.org/w/index.php?title=Q45&oldid=2562960447",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-argentina",
+      "url": "https://www.wikidata.org/w/index.php?title=Q414&oldid=2559843802",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-por-team",
+      "url": "https://www.wikidata.org/w/index.php?title=Q267245&oldid=2555940692",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "wd-arg-team",
+      "url": "https://www.wikidata.org/w/index.php?title=Q79800&oldid=2556253092",
+      "license": "CC0-1.0",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "real-ronaldo",
+      "url": "https://www.realmadrid.com/en-US/the-club/history/football-legends/cristiano-ronaldo-dos-santos-aveiro/",
+      "license": "reference-only",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "barca-messi",
+      "url": "https://www.fcbarcelona.com/en/ficha/2214377/leo-messi",
+      "license": "reference-only",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "uefa-figo",
+      "url": "https://www.uefa.com/uefachampionsleague/news/0253-0d0407b3a177-5873da9acc34-1000--ambassador-luis-figo/",
+      "license": "reference-only",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "real-dimaria",
+      "url": "https://www.realmadrid.com/en-US/the-club/history/football-legends/angel-di-maria",
+      "license": "reference-only",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "fifa-portugal",
+      "url": "https://inside.fifa.com/news/cristiano-the-extraordinary-centurion",
+      "license": "reference-only",
+      "retrieved": "2026-11-01"
+    },
+    {
+      "id": "fifa-argentina",
+      "url": "https://www.fifa.com/es/articles/argentina-le-gano-por-penales-a-francia-y-se-consagro-campeon-del-mundo",
+      "license": "reference-only",
+      "retrieved": "2026-11-01"
+    }
+  ],
+  "entities": [
+    {
+      "id": "Q45",
+      "kind": "country",
+      "name": "Portekiz",
+      "aliases": [
+        "Portugal"
+      ],
+      "mark": "POR",
+      "sourceId": "wd-portugal"
+    },
+    {
+      "id": "Q414",
+      "kind": "country",
+      "name": "Arjantin",
+      "aliases": [
+        "Argentina"
+      ],
+      "mark": "ARG",
+      "sourceId": "wd-argentina"
+    },
+    {
+      "id": "Q8682",
+      "kind": "club",
+      "name": "Real Madrid",
+      "aliases": [
+        "Real Madrid CF",
+        "Real Madrid Club de Fútbol"
+      ],
+      "level": "senior",
+      "mark": "RM",
+      "sourceId": "wd-real"
+    },
+    {
+      "id": "Q7156",
+      "kind": "club",
+      "name": "Barcelona",
+      "aliases": [
+        "FC Barcelona",
+        "Barça"
+      ],
+      "level": "senior",
+      "mark": "FCB",
+      "sourceId": "wd-barca"
+    },
+    {
+      "id": "Q267245",
+      "kind": "national_team",
+      "name": "Portekiz A Millî Takımı",
+      "aliases": [
+        "Portugal men's national football team"
+      ],
+      "countryId": "Q45",
+      "level": "senior",
+      "sourceId": "wd-por-team"
+    },
+    {
+      "id": "Q79800",
+      "kind": "national_team",
+      "name": "Arjantin A Millî Takımı",
+      "aliases": [
+        "Argentina national football team"
+      ],
+      "countryId": "Q414",
+      "level": "senior",
+      "sourceId": "wd-arg-team"
+    },
+    {
+      "id": "Q11571",
+      "kind": "player",
+      "name": "Cristiano Ronaldo",
+      "aliases": [
+        "Cristiano Ronaldo dos Santos Aveiro",
+        "CR7"
+      ],
+      "birthDate": "1985-02-05",
+      "sourceId": "wd-ronaldo"
+    },
+    {
+      "id": "Q615",
+      "kind": "player",
+      "name": "Lionel Messi",
+      "aliases": [
+        "Leo Messi",
+        "Lionel Andrés Messi"
+      ],
+      "birthDate": "1987-06-24",
+      "sourceId": "wd-messi"
+    },
+    {
+      "id": "Q483145",
+      "kind": "player",
+      "name": "Luís Figo",
+      "aliases": [
+        "Luis Figo",
+        "Luís Filipe Madeira Caeiro Figo"
+      ],
+      "birthDate": "1972-11-04",
+      "sourceId": "wd-figo"
+    },
+    {
+      "id": "Q251683",
+      "kind": "player",
+      "name": "Ángel Di María",
+      "aliases": [
+        "Angel Di Maria",
+        "Ángel Fabián Di María"
+      ],
+      "birthDate": "1988-02-14",
+      "sourceId": "wd-dimaria"
+    }
+  ],
+  "careers": [
+    {
+      "id": "ronaldo-real",
+      "playerId": "Q11571",
+      "teamId": "Q8682",
+      "fromYear": 2009,
+      "toYear": 2018,
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-ronaldo",
+      "evidenceId": "real-ronaldo"
+    },
+    {
+      "id": "ronaldo-por",
+      "playerId": "Q11571",
+      "teamId": "Q267245",
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-ronaldo",
+      "evidenceId": "fifa-portugal"
+    },
+    {
+      "id": "messi-barca",
+      "playerId": "Q615",
+      "teamId": "Q7156",
+      "fromYear": 2004,
+      "toYear": 2021,
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-messi",
+      "evidenceId": "barca-messi"
+    },
+    {
+      "id": "messi-arg",
+      "playerId": "Q615",
+      "teamId": "Q79800",
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-messi",
+      "evidenceId": "fifa-argentina"
+    },
+    {
+      "id": "figo-barca",
+      "playerId": "Q483145",
+      "teamId": "Q7156",
+      "fromYear": 1995,
+      "toYear": 2000,
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-figo",
+      "evidenceId": "uefa-figo"
+    },
+    {
+      "id": "figo-real",
+      "playerId": "Q483145",
+      "teamId": "Q8682",
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-figo",
+      "evidenceId": "uefa-figo"
+    },
+    {
+      "id": "figo-por",
+      "playerId": "Q483145",
+      "teamId": "Q267245",
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-figo",
+      "evidenceId": "fifa-portugal"
+    },
+    {
+      "id": "dimaria-real",
+      "playerId": "Q251683",
+      "teamId": "Q8682",
+      "fromYear": 2010,
+      "toYear": 2014,
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-dimaria",
+      "evidenceId": "real-dimaria"
+    },
+    {
+      "id": "dimaria-arg",
+      "playerId": "Q251683",
+      "teamId": "Q79800",
+      "appeared": true,
+      "verified": true,
+      "sourceId": "wd-dimaria",
+      "evidenceId": "fifa-argentina"
+    }
+  ]
+}

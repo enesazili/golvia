@@ -1,0 +1,15 @@
+{
+  "clubs": [
+    {
+      "id": "Q32494",
+      "name": "Schalke 04",
+      "tier": "A"
+    },
+    {
+      "id": "Q142005",
+      "name": "Hansa Rostock",
+      "tier": "B"
+    }
+  ],
+  "nationalTeams": []
+}

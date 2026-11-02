@@ -1,0 +1,709 @@
+{
+  "title": "Golvia A group — top 100 world club ranking",
+  "source": "https://golmetro.com/rankings/clubs",
+  "rankingDate": "2026-10-27",
+  "rankingType": "Current-performance ranking, not historical club prestige",
+  "wikidataIdsVerified": false,
+  "clubs": [
+    {
+      "rank": 1,
+      "name": "Bayern München",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 2,
+      "name": "Barcelona",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 3,
+      "name": "Arsenal",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 4,
+      "name": "Manchester City",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 5,
+      "name": "Paris Saint Germain",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 6,
+      "name": "Real Madrid",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 7,
+      "name": "Inter",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 8,
+      "name": "Borussia Dortmund",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 9,
+      "name": "Aston Villa",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 10,
+      "name": "Liverpool",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 11,
+      "name": "Sporting CP",
+      "country": "Portugal",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 12,
+      "name": "Bayer Leverkusen",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 13,
+      "name": "Atletico Madrid",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 14,
+      "name": "Brighton",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 15,
+      "name": "Manchester United",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 16,
+      "name": "Bournemouth",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 17,
+      "name": "Benfica",
+      "country": "Portugal",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 18,
+      "name": "Como",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 19,
+      "name": "AS Roma",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 20,
+      "name": "Chelsea",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 21,
+      "name": "VfB Stuttgart",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 22,
+      "name": "Villarreal",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 23,
+      "name": "RB Leipzig",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 24,
+      "name": "PSV Eindhoven",
+      "country": "Netherlands",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 25,
+      "name": "Brentford",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 26,
+      "name": "Newcastle",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 27,
+      "name": "Juventus",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 28,
+      "name": "Napoli",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 29,
+      "name": "AC Milan",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 30,
+      "name": "Nottingham Forest",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 31,
+      "name": "Lens",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 32,
+      "name": "Bodo/Glimt",
+      "country": "Norway",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 33,
+      "name": "FC Porto",
+      "country": "Portugal",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 34,
+      "name": "Real Betis",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 35,
+      "name": "Zenit Saint Petersburg",
+      "country": "Russia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 36,
+      "name": "Tottenham",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 37,
+      "name": "Everton",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 38,
+      "name": "Cruz Azul",
+      "country": "Mexico",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 39,
+      "name": "Atalanta",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 40,
+      "name": "Johor Darul Takzim FC",
+      "country": "Malaysia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 41,
+      "name": "Al-Nassr",
+      "country": "Saudi Arabia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 42,
+      "name": "Leeds",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 43,
+      "name": "Toluca",
+      "country": "Mexico",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 44,
+      "name": "Flamengo",
+      "country": "Brazil",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 45,
+      "name": "Al-Hilal Saudi FC",
+      "country": "Saudi Arabia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 46,
+      "name": "Krasnodar",
+      "country": "Russia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 47,
+      "name": "Guadalajara Chivas",
+      "country": "Mexico",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 48,
+      "name": "Fulham",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 49,
+      "name": "1899 Hoffenheim",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 50,
+      "name": "Club Brugge KV",
+      "country": "Belgium",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 51,
+      "name": "Crystal Palace",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 52,
+      "name": "Celta Vigo",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 53,
+      "name": "Monaco",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 54,
+      "name": "Real Sociedad",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 55,
+      "name": "Dinamo Zagreb",
+      "country": "Croatia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 56,
+      "name": "U.N.A.M. - Pumas",
+      "country": "Mexico",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 57,
+      "name": "SC Freiburg",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 58,
+      "name": "Marseille",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 59,
+      "name": "Lazio",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 60,
+      "name": "Eintracht Frankfurt",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 61,
+      "name": "Lyon",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 62,
+      "name": "Palmeiras",
+      "country": "Brazil",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 63,
+      "name": "Lille",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 64,
+      "name": "Union St. Gilloise",
+      "country": "Belgium",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 65,
+      "name": "Tigres UANL",
+      "country": "Mexico",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 66,
+      "name": "FSV Mainz 05",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 67,
+      "name": "West Ham",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 68,
+      "name": "Bologna",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 69,
+      "name": "Galatasaray",
+      "country": "Turkey",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 70,
+      "name": "Rayo Vallecano",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 71,
+      "name": "Inter Miami",
+      "country": "United States",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 72,
+      "name": "Athletic Club",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 73,
+      "name": "Al-Ahli Jeddah",
+      "country": "Saudi Arabia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 74,
+      "name": "Osasuna",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 75,
+      "name": "Feyenoord",
+      "country": "Netherlands",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 76,
+      "name": "FC Midtjylland",
+      "country": "Denmark",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 77,
+      "name": "Fenerbahçe",
+      "country": "Turkey",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 78,
+      "name": "Sunderland",
+      "country": "England",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 79,
+      "name": "Rennes",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 80,
+      "name": "Club America",
+      "country": "Mexico",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 81,
+      "name": "Strasbourg",
+      "country": "France",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 82,
+      "name": "Valencia",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 83,
+      "name": "Alaves",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 84,
+      "name": "Viking",
+      "country": "Norway",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 85,
+      "name": "Slavia Praha",
+      "country": "Czechia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 86,
+      "name": "Getafe",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 87,
+      "name": "Vancouver Whitecaps",
+      "country": "Canada",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 88,
+      "name": "Al-Qadisiyah FC",
+      "country": "Saudi Arabia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 89,
+      "name": "Sevilla",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 90,
+      "name": "Mallorca",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 91,
+      "name": "Ajax",
+      "country": "Netherlands",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 92,
+      "name": "Los Angeles FC",
+      "country": "United States",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 93,
+      "name": "Spartak Moscow",
+      "country": "Russia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 94,
+      "name": "Borussia Mönchengladbach",
+      "country": "Germany",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 95,
+      "name": "SC Braga",
+      "country": "Portugal",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 96,
+      "name": "Fiorentina",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 97,
+      "name": "Udinese",
+      "country": "Italy",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 98,
+      "name": "Dynamo",
+      "country": "Russia",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 99,
+      "name": "Pachuca",
+      "country": "Mexico",
+      "tier": "A",
+      "wikidataId": null
+    },
+    {
+      "rank": 100,
+      "name": "Girona",
+      "country": "Spain",
+      "tier": "A",
+      "wikidataId": null
+    }
+  ]
+}

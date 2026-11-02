@@ -1,0 +1,710 @@
+{
+    "clubs":  [
+                  {
+                      "id":  "Q15789",
+                      "name":  "Bayern München",
+                      "tier":  "A",
+                      "rank":  1,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q7156",
+                      "name":  "Barcelona",
+                      "tier":  "A",
+                      "rank":  2,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q9617",
+                      "name":  "Arsenal",
+                      "tier":  "A",
+                      "rank":  3,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q50602",
+                      "name":  "Manchester City",
+                      "tier":  "A",
+                      "rank":  4,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q483020",
+                      "name":  "Paris Saint Germain",
+                      "tier":  "A",
+                      "rank":  5,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q8682",
+                      "name":  "Real Madrid",
+                      "tier":  "A",
+                      "rank":  6,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q631",
+                      "name":  "Inter",
+                      "tier":  "A",
+                      "rank":  7,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q41420",
+                      "name":  "Borussia Dortmund",
+                      "tier":  "A",
+                      "rank":  8,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q18711",
+                      "name":  "Aston Villa",
+                      "tier":  "A",
+                      "rank":  9,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q1130849",
+                      "name":  "Liverpool",
+                      "tier":  "A",
+                      "rank":  10,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q75729",
+                      "name":  "Sporting CP",
+                      "tier":  "A",
+                      "rank":  11,
+                      "country":  "Portugal"
+                  },
+                  {
+                      "id":  "Q104761",
+                      "name":  "Bayer Leverkusen",
+                      "tier":  "A",
+                      "rank":  12,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q8701",
+                      "name":  "Atletico Madrid",
+                      "tier":  "A",
+                      "rank":  13,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q19453",
+                      "name":  "Brighton",
+                      "tier":  "A",
+                      "rank":  14,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q18656",
+                      "name":  "Manchester United",
+                      "tier":  "A",
+                      "rank":  15,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q19568",
+                      "name":  "Bournemouth",
+                      "tier":  "A",
+                      "rank":  16,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q131499",
+                      "name":  "Benfica",
+                      "tier":  "A",
+                      "rank":  17,
+                      "country":  "Portugal"
+                  },
+                  {
+                      "id":  "Q1120838",
+                      "name":  "Como",
+                      "tier":  "A",
+                      "rank":  18,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q2739",
+                      "name":  "AS Roma",
+                      "tier":  "A",
+                      "rank":  19,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q9616",
+                      "name":  "Chelsea",
+                      "tier":  "A",
+                      "rank":  20,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q4512",
+                      "name":  "VfB Stuttgart",
+                      "tier":  "A",
+                      "rank":  21,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q12297",
+                      "name":  "Villarreal",
+                      "tier":  "A",
+                      "rank":  22,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q702455",
+                      "name":  "RB Leipzig",
+                      "tier":  "A",
+                      "rank":  23,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q11938",
+                      "name":  "PSV Eindhoven",
+                      "tier":  "A",
+                      "rank":  24,
+                      "country":  "Netherlands"
+                  },
+                  {
+                      "id":  "Q19571",
+                      "name":  "Brentford",
+                      "tier":  "A",
+                      "rank":  25,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q18716",
+                      "name":  "Newcastle",
+                      "tier":  "A",
+                      "rank":  26,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q1422",
+                      "name":  "Juventus",
+                      "tier":  "A",
+                      "rank":  27,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q2641",
+                      "name":  "Napoli",
+                      "tier":  "A",
+                      "rank":  28,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q1543",
+                      "name":  "AC Milan",
+                      "tier":  "A",
+                      "rank":  29,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q19490",
+                      "name":  "Nottingham Forest",
+                      "tier":  "A",
+                      "rank":  30,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q191843",
+                      "name":  "Lens",
+                      "tier":  "A",
+                      "rank":  31,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q478167",
+                      "name":  "Bodo/Glimt",
+                      "tier":  "A",
+                      "rank":  32,
+                      "country":  "Norway"
+                  },
+                  {
+                      "id":  "Q128446",
+                      "name":  "FC Porto",
+                      "tier":  "A",
+                      "rank":  33,
+                      "country":  "Portugal"
+                  },
+                  {
+                      "id":  "Q8723",
+                      "name":  "Real Betis",
+                      "tier":  "A",
+                      "rank":  34,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q29108",
+                      "name":  "Zenit Saint Petersburg",
+                      "tier":  "A",
+                      "rank":  35,
+                      "country":  "Russia"
+                  },
+                  {
+                      "id":  "Q18741",
+                      "name":  "Tottenham",
+                      "tier":  "A",
+                      "rank":  36,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q5794",
+                      "name":  "Everton",
+                      "tier":  "A",
+                      "rank":  37,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q845859",
+                      "name":  "Cruz Azul",
+                      "tier":  "A",
+                      "rank":  38,
+                      "country":  "Mexico"
+                  },
+                  {
+                      "id":  "Q1886",
+                      "name":  "Atalanta",
+                      "tier":  "A",
+                      "rank":  39,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q72521",
+                      "name":  "Johor Darul Takzim FC",
+                      "tier":  "A",
+                      "rank":  40,
+                      "country":  "Malaysia"
+                  },
+                  {
+                      "id":  "Q482764",
+                      "name":  "Al-Nassr",
+                      "tier":  "A",
+                      "rank":  41,
+                      "country":  "Saudi Arabia"
+                  },
+                  {
+                      "id":  "Q1128631",
+                      "name":  "Leeds",
+                      "tier":  "A",
+                      "rank":  42,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q670186",
+                      "name":  "Toluca",
+                      "tier":  "A",
+                      "rank":  43,
+                      "country":  "Mexico"
+                  },
+                  {
+                      "id":  "Q17479",
+                      "name":  "Flamengo",
+                      "tier":  "A",
+                      "rank":  44,
+                      "country":  "Brazil"
+                  },
+                  {
+                      "id":  "Q73965",
+                      "name":  "Al-Hilal Saudi FC",
+                      "tier":  "A",
+                      "rank":  45,
+                      "country":  "Saudi Arabia"
+                  },
+                  {
+                      "id":  "Q220854",
+                      "name":  "Krasnodar",
+                      "tier":  "A",
+                      "rank":  46,
+                      "country":  "Russia"
+                  },
+                  {
+                      "id":  "Q503321",
+                      "name":  "Guadalajara Chivas",
+                      "tier":  "A",
+                      "rank":  47,
+                      "country":  "Mexico"
+                  },
+                  {
+                      "id":  "Q18708",
+                      "name":  "Fulham",
+                      "tier":  "A",
+                      "rank":  48,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q22707",
+                      "name":  "1899 Hoffenheim",
+                      "tier":  "A",
+                      "rank":  49,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q190916",
+                      "name":  "Club Brugge KV",
+                      "tier":  "A",
+                      "rank":  50,
+                      "country":  "Belgium"
+                  },
+                  {
+                      "id":  "Q19467",
+                      "name":  "Crystal Palace",
+                      "tier":  "A",
+                      "rank":  51,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q8749",
+                      "name":  "Celta Vigo",
+                      "tier":  "A",
+                      "rank":  52,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q180305",
+                      "name":  "Monaco",
+                      "tier":  "A",
+                      "rank":  53,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q10315",
+                      "name":  "Real Sociedad",
+                      "tier":  "A",
+                      "rank":  54,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q172803",
+                      "name":  "Dinamo Zagreb",
+                      "tier":  "A",
+                      "rank":  55,
+                      "country":  "Croatia"
+                  },
+                  {
+                      "id":  "Q1143000",
+                      "name":  "U.N.A.M. - Pumas",
+                      "tier":  "A",
+                      "rank":  56,
+                      "country":  "Mexico"
+                  },
+                  {
+                      "id":  "Q106394",
+                      "name":  "SC Freiburg",
+                      "tier":  "A",
+                      "rank":  57,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q132885",
+                      "name":  "Marseille",
+                      "tier":  "A",
+                      "rank":  58,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q2609",
+                      "name":  "Lazio",
+                      "tier":  "A",
+                      "rank":  59,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q38245",
+                      "name":  "Eintracht Frankfurt",
+                      "tier":  "A",
+                      "rank":  60,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q704",
+                      "name":  "Lyon",
+                      "tier":  "A",
+                      "rank":  61,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q80964",
+                      "name":  "Palmeiras",
+                      "tier":  "A",
+                      "rank":  62,
+                      "country":  "Brazil"
+                  },
+                  {
+                      "id":  "Q19516",
+                      "name":  "Lille",
+                      "tier":  "A",
+                      "rank":  63,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q196160",
+                      "name":  "Union St. Gilloise",
+                      "tier":  "A",
+                      "rank":  64,
+                      "country":  "Belgium"
+                  },
+                  {
+                      "id":  "Q849823",
+                      "name":  "Tigres UANL",
+                      "tier":  "A",
+                      "rank":  65,
+                      "country":  "Mexico"
+                  },
+                  {
+                      "id":  "Q105254",
+                      "name":  "FSV Mainz 05",
+                      "tier":  "A",
+                      "rank":  66,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q18747",
+                      "name":  "West Ham",
+                      "tier":  "A",
+                      "rank":  67,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q1893",
+                      "name":  "Bologna",
+                      "tier":  "A",
+                      "rank":  68,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q495299",
+                      "name":  "Galatasaray",
+                      "tier":  "A",
+                      "rank":  69,
+                      "country":  "Turkey"
+                  },
+                  {
+                      "id":  "Q10300",
+                      "name":  "Rayo Vallecano",
+                      "tier":  "A",
+                      "rank":  70,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q16844931",
+                      "name":  "Inter Miami",
+                      "tier":  "A",
+                      "rank":  71,
+                      "country":  "United States"
+                  },
+                  {
+                      "id":  "Q8687",
+                      "name":  "Athletic Club",
+                      "tier":  "A",
+                      "rank":  72,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q44441",
+                      "name":  "Al-Ahli Jeddah",
+                      "tier":  "A",
+                      "rank":  73,
+                      "country":  "Saudi Arabia"
+                  },
+                  {
+                      "id":  "Q10286",
+                      "name":  "Osasuna",
+                      "tier":  "A",
+                      "rank":  74,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q134241",
+                      "name":  "Feyenoord",
+                      "tier":  "A",
+                      "rank":  75,
+                      "country":  "Netherlands"
+                  },
+                  {
+                      "id":  "Q618520",
+                      "name":  "FC Midtjylland",
+                      "tier":  "A",
+                      "rank":  76,
+                      "country":  "Denmark"
+                  },
+                  {
+                      "id":  "Q6601875",
+                      "name":  "Fenerbahçe",
+                      "tier":  "A",
+                      "rank":  77,
+                      "country":  "Turkey"
+                  },
+                  {
+                      "id":  "Q18739",
+                      "name":  "Sunderland",
+                      "tier":  "A",
+                      "rank":  78,
+                      "country":  "England"
+                  },
+                  {
+                      "id":  "Q19509",
+                      "name":  "Rennes",
+                      "tier":  "A",
+                      "rank":  79,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q459090",
+                      "name":  "Club America",
+                      "tier":  "A",
+                      "rank":  80,
+                      "country":  "Mexico"
+                  },
+                  {
+                      "id":  "Q126334",
+                      "name":  "Strasbourg",
+                      "tier":  "A",
+                      "rank":  81,
+                      "country":  "France"
+                  },
+                  {
+                      "id":  "Q10333",
+                      "name":  "Valencia",
+                      "tier":  "A",
+                      "rank":  82,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q223620",
+                      "name":  "Alaves",
+                      "tier":  "A",
+                      "rank":  83,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q211177",
+                      "name":  "Viking",
+                      "tier":  "A",
+                      "rank":  84,
+                      "country":  "Norway"
+                  },
+                  {
+                      "id":  "Q194393",
+                      "name":  "Slavia Praha",
+                      "tier":  "A",
+                      "rank":  85,
+                      "country":  "Czechia"
+                  },
+                  {
+                      "id":  "Q8806",
+                      "name":  "Getafe",
+                      "tier":  "A",
+                      "rank":  86,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q196107",
+                      "name":  "Vancouver Whitecaps",
+                      "tier":  "A",
+                      "rank":  87,
+                      "country":  "Canada"
+                  },
+                  {
+                      "id":  "Q286191",
+                      "name":  "Al-Qadisiyah FC",
+                      "tier":  "A",
+                      "rank":  88,
+                      "country":  "Saudi Arabia"
+                  },
+                  {
+                      "id":  "Q10329",
+                      "name":  "Sevilla",
+                      "tier":  "A",
+                      "rank":  89,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q8835",
+                      "name":  "Mallorca",
+                      "tier":  "A",
+                      "rank":  90,
+                      "country":  "Spain"
+                  },
+                  {
+                      "id":  "Q81888",
+                      "name":  "Ajax",
+                      "tier":  "A",
+                      "rank":  91,
+                      "country":  "Netherlands"
+                  },
+                  {
+                      "id":  "Q18380286",
+                      "name":  "Los Angeles FC",
+                      "tier":  "A",
+                      "rank":  92,
+                      "country":  "United States"
+                  },
+                  {
+                      "id":  "Q29112",
+                      "name":  "Spartak Moscow",
+                      "tier":  "A",
+                      "rank":  93,
+                      "country":  "Russia"
+                  },
+                  {
+                      "id":  "Q101959",
+                      "name":  "Borussia Mönchengladbach",
+                      "tier":  "A",
+                      "rank":  94,
+                      "country":  "Germany"
+                  },
+                  {
+                      "id":  "Q75684",
+                      "name":  "SC Braga",
+                      "tier":  "A",
+                      "rank":  95,
+                      "country":  "Portugal"
+                  },
+                  {
+                      "id":  "Q2052",
+                      "name":  "Fiorentina",
+                      "tier":  "A",
+                      "rank":  96,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q2798",
+                      "name":  "Udinese",
+                      "tier":  "A",
+                      "rank":  97,
+                      "country":  "Italy"
+                  },
+                  {
+                      "id":  "Q17497",
+                      "name":  "Dynamo",
+                      "tier":  "A",
+                      "rank":  98,
+                      "country":  "Russia"
+                  },
+                  {
+                      "id":  "Q736937",
+                      "name":  "Pachuca",
+                      "tier":  "A",
+                      "rank":  99,
+                      "country":  "Mexico"
+                  },
+                  {
+                      "id":  "Q11945",
+                      "name":  "Girona",
+                      "tier":  "A",
+                      "rank":  100,
+                      "country":  "Spain"
+                  }
+              ],
+    "nationalTeams":  [
+
+                      ],
+    "source":  "https://golmetro.com/rankings/clubs",
+    "rankingDate":  "2026-10-27",
+    "warning":  "Manuel eslestirmeler ve otomatik adaylar; tum kayitlar bagimsiz denetimden gecmedi."
+}
