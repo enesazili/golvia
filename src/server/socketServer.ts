@@ -1,4 +1,4 @@
-import { createServer } from 'node:http';
+import { createServer, type RequestListener } from 'node:http';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
@@ -36,7 +36,7 @@ function clientAddress(socket: { handshake: { address?: string; headers: Record<
   return socket.handshake.address || 'unknown';
 }
 
-export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketAccount, limits: Partial<SocketLimits> = {}) {
+export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketAccount, limits: Partial<SocketLimits> = {},fallbackHandler?: RequestListener) {
   const settings = { ...DEFAULT_LIMITS, ...limits };
   const httpServer = createServer((request, response) => {
     if (request.method === 'GET' && request.url === '/health/live') { response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end('{"status":"up"}'); return; }
@@ -44,7 +44,12 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
       void readiness().then(ready => { response.writeHead(ready ? 200 : 503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify({ status: ready ? 'ready' : 'unavailable' })); }).catch(() => { response.writeHead(503, { 'Cache-Control': 'no-store' }); response.end('{"status":"unavailable"}'); });
       return;
     }
-    response.writeHead(404); response.end();
+    if (fallbackHandler) {
+    fallbackHandler(request, response);
+    return;
+    }
+    response.writeHead(404);
+    response.end();
   });
   const origins = socketOrigins();
   const originAllowed = (origin?: string) => {
