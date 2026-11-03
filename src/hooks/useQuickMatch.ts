@@ -19,7 +19,7 @@ export function useQuickMatch() {
     if (socketRef.current) return;
     setStatus('queue');
     const url = process.env.NEXT_PUBLIC_WS_URL || (process.env.NODE_ENV === 'production' ? location.origin : `${location.protocol}//${location.hostname}:${process.env.NEXT_PUBLIC_WS_PORT || '3001'}`);
-    const connection = io(url, { autoConnect: false, reconnection: true, reconnectionAttempts: 8, auth: { resumeToken: sessionStorage.getItem('golvia:resume-token') } });
+    const connection = io(url, { transports: ['websocket'], autoConnect: false, reconnection: true, reconnectionAttempts: 8, auth: { resumeToken: sessionStorage.getItem('golvia:resume-token') } });
     socketRef.current = connection; setSocket(connection);
     connection.on('playerId', (id: string) => setPlayerId(id));
     connection.on('session', (data: { playerId: string; resumeToken: string }) => {
