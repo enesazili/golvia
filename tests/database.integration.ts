@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { Pool } from 'pg';
 import { importDataset, validateDataset } from '../src/server/football/importer.ts';
 import { FootballRepository } from '../src/server/football/repository.ts';
+import { PostgresMatchJournal } from '../src/server/matchJournal.ts';
 import { connects, type Dataset } from '../src/server/football/types.ts';
 import { normalize } from '../src/server/football/normalize.ts';
 test('real PostgreSQL migration, import, queries and relation rules', async t => {
@@ -95,6 +96,41 @@ test('real PostgreSQL migration, import, queries and relation rules', async t =>
   } finally {
     await pool.end();
     // Only the generated, strictly alphanumeric test schema is removed; production tables untouched.
+    await admin.query(`DROP SCHEMA ${schema} CASCADE`); await admin.end();
+  }
+});
+
+test('match journal persists lifecycle, closes stale matches once and stays idempotent', async () => {
+  const adminUrl = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL;
+  assert.ok(adminUrl, 'DATABASE_ADMIN_URL or DATABASE_URL required; this test must not silently skip');
+  const admin = new Pool({ connectionString: adminUrl });
+  const schema = `golvia_match_test_${randomUUID().replaceAll('-', '')}`;
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  const pool = new Pool({ connectionString: adminUrl, options: `-c search_path=${schema},public` });
+  try {
+    for (const file of ['../src/server/football/schema.sql', '../src/server/match/schema.sql']) {
+      await pool.query(await readFile(new URL(file, import.meta.url), 'utf8'));
+    }
+    const now = Date.now();
+    const first = new PostgresMatchJournal(pool, 'versus');
+    await first.start({ matchId: 'match-one', createdAt: now, expiresAt: now + 60_000 });
+    await first.start({ matchId: 'match-one', createdAt: now, expiresAt: now + 60_000 });
+    assert.equal((await pool.query('SELECT count(*)::int AS n FROM golvia_match')).rows[0].n, 1, 'duplicate start does not create a second row');
+    assert.equal((await pool.query("SELECT closed_at FROM golvia_match WHERE id='match-one'")).rows[0].closed_at, null);
+    await first.close('match-one', 'finished');
+    const closedAt = (await pool.query("SELECT closed_at FROM golvia_match WHERE id='match-one'")).rows[0].closed_at;
+    await first.close('match-one', 'expired');
+    assert.equal((await pool.query("SELECT close_reason FROM golvia_match WHERE id='match-one'")).rows[0].close_reason, 'finished', 'a finished match cannot be closed twice with a different reason');
+    assert.ok(closedAt);
+    await first.start({ matchId: 'match-two', createdAt: now, expiresAt: now + 60_000 });
+    const second = new PostgresMatchJournal(pool, 'versus');
+    assert.equal(await second.recover(), 1, 'a new process closes matches it cannot own');
+    const stale = (await pool.query("SELECT close_reason FROM golvia_match WHERE id='match-two'")).rows[0];
+    assert.equal(stale.close_reason, 'server-restart');
+    assert.equal(await second.recover(), 1, 'recovery result is memoized for the process');
+    assert.equal((await pool.query('SELECT count(*)::int AS n FROM golvia_match WHERE closed_at IS NULL')).rows[0].n, 0, 'no open matches remain after recovery');
+  } finally {
+    await pool.end();
     await admin.query(`DROP SCHEMA ${schema} CASCADE`); await admin.end();
   }
 });

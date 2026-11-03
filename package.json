@@ -14,6 +14,8 @@
     "db:migrate": "node --env-file=.env --import tsx scripts/database.ts migrate",
     "db:auth:migrate": "node --env-file=.env --import tsx scripts/database.ts auth-migrate",
     "db:import": "node --env-file=.env --import tsx scripts/database.ts import",
+    "db:backup": "node --env-file=.env --import tsx scripts/db-backup.ts",
+    "account:status": "node --env-file=.env --import tsx scripts/account.ts",
     "test:db": "node --env-file=.env --import tsx --test tests/database.integration.ts",
     "test:account": "node --env-file=.env --import tsx --test tests/account.integration.ts",
     "test:http": "tsx --test tests/http.integration.ts",

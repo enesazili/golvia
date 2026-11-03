@@ -1,5 +1,7 @@
 # Copy into an nginx http context after replacing the domain and certificate paths.
-# Next.js and Socket.IO bind to 127.0.0.1 on a single host.
+# Next.js and Socket.IO bind to 127.0.0.1 on a single host; never expose 3000/3001 publicly.
+# X-Real-IP must be overwritten (not appended) and the app must run with TRUST_PROXY=true and
+# WS_TRUST_PROXY=true. Without those flags the app ignores forwarding headers on purpose.
 map $http_upgrade $golvia_connection_upgrade {
     default upgrade;
     '' close;

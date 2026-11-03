@@ -143,3 +143,18 @@ Detaylı kanıtlar ve güncel sınırlamalar: PROJECT_CONTEXT.md. Veri kapsamı:
 - [ ] Nonce tabanlı CSP, süreç dışı/paylaşımlı rate limit ve socket bağlantı/IP limiti.
 - [ ] Kalıcı maç sahipliği, restart kurtarma ve çoklu replica güvenliği.
 - [ ] İki gerçek cihazla E2E, uzun kopma, yük testi ve canlı yedek geri yükleme provası.
+
+## Phase 5 — production güvenlik ve dayanıklılık — 3 Kasım 2026
+
+- [x] Maç yaşam döngüsü journal'ı (`golvia_match`), açılışta `recover()` ile yarım maçları kapatma, `service.shutdown()` ve istemciye yanıltıcı devam hakkı vermeme; canlı oyun durumu bilinçli olarak bellekte.
+- [x] Nonce tabanlı CSP (`src/proxy.ts`), `'strict-dynamic'` script, nonce style, production'da `unsafe-inline` kaldırma; güvenli HTTP başlıkları ve HSTS.
+- [x] Socket bağlantı/IP/hesap limitleri, handshake hız sınırı, varsayılan TCP eşinden IP; `WS_TRUST_PROXY` olmadan forwarded başlığı yok sayma.
+- [x] Askıya alma/reactivate aracı, `activeSession()` ile oturum iptali, token tek kullanımı ve hesaplar arası erişim testleri; `TRUST_PROXY` kapılı Better Auth IP çözümü.
+- [x] `golvia_match` migration + `golvia_app` SELECT/INSERT/UPDATE izni; football şemasıyla tek transaction.
+- [x] `db:backup -- --restore-test` custom dump ve izole `golvia_restore_test` geri yükleme; 60 varlık/72 kariyer/72 bağ eşleşti.
+- [x] Genişletilmiş production preflight: origin, auth secret, SMTP eşleşmesi, build, DB, tablolar, dataset ve opsiyonel readiness; kritik eksikte fail-closed.
+- [x] `npm test` 49/49, `test:db` 10/10, `test:account`, `test:http`, lint, typecheck, build ve üretim audit 0.
+- [ ] Gerçek SMTP sağlayıcı, domain, TLS ve nginx ile uçtan uca hesap/e-posta doğrulaması.
+- [ ] Süreç dışı/paylaşımlı rate limit ve maç durumu için kalıcı atomik sahiplik; ancak sonrasında çoklu replica.
+- [ ] İki gerçek cihaz, uzun kopma, yük ve canlı yedek geri yükleme provası.
+- [ ] `style-src` nonce politikasının yeni istemci kütüphaneleriyle uyumunun sürekli doğrulanması.

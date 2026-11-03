@@ -6,12 +6,38 @@ import { Pool } from 'pg';
 import { Matchmaking } from './matchmaking.ts';
 import { MatchService } from './game/service.ts';
 import { FootballRepository } from './football/repository.ts';
+import { PostgresMatchJournal } from './matchJournal.ts';
 import { parseAction } from './http.ts';
 import { socketOrigins } from './config.ts';
 import { socketAccount } from './socketAuth.ts';
 import { closeAuth } from './auth.ts';
 type AccountResolver = (cookie?: string) => Promise<string | null>;
-export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketAccount) {
+export type SocketLimits = {
+  /** Concurrent connections accepted by this process. */
+  maxConnections: number;
+  /** Concurrent connections from one client address. */
+  maxPerIp: number;
+  /** Concurrent connections for one authenticated account. */
+  maxPerAccount: number;
+  /** Handshake attempts from one client address per minute. */
+  handshakesPerMinute: number;
+};
+const DEFAULT_LIMITS: SocketLimits = { maxConnections: 500, maxPerIp: 20, maxPerAccount: 5, handshakesPerMinute: 60 };
+
+/**
+ * Resolves the TCP peer by default. Forwarded headers are only trusted when WS_TRUST_PROXY=true,
+ * which is valid only behind a reverse proxy that overwrites the header on every request.
+ */
+function clientAddress(socket: { handshake: { address?: string; headers: Record<string, string | string[] | undefined> } }) {
+  if (process.env.WS_TRUST_PROXY === 'true') {
+    const value = socket.handshake.headers['x-real-ip'];
+    if (typeof value === 'string' && value.length <= 64 && /^[0-9a-fA-F:.]+$/.test(value)) return value;
+  }
+  return socket.handshake.address || 'unknown';
+}
+
+export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketAccount, limits: Partial<SocketLimits> = {}) {
+  const settings = { ...DEFAULT_LIMITS, ...limits };
   const httpServer = createServer((request, response) => {
     if (request.method === 'GET' && request.url === '/health/live') { response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end('{"status":"up"}'); return; }
     if (request.method === 'GET' && request.url === '/health/ready') {
@@ -31,13 +57,48 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
     return false;
   };
   const io = new Server(httpServer, { allowRequest: (request, callback) => callback(null, originAllowed(request.headers.origin)), cors: { origin: (origin, callback) => callback(null, originAllowed(origin)), methods: ['GET', 'POST'] }, maxHttpBufferSize: 4096 });
+
+  // Process-local admission control. Restart resets these counters and multiple replicas each keep
+  // their own; production must therefore run a single socket process (see PROJECT_CONTEXT.md).
+  let connections = 0;
+  const perIp = new Map<string, number>();
+  const perAccount = new Map<string, number>();
+  const handshakes = new Map<string, { count: number; reset: number }>();
+  const handshakeAllowed = (ip: string) => {
+    const now = Date.now(); const slot = handshakes.get(ip);
+    if (!slot || slot.reset <= now) { handshakes.set(ip, { count: 1, reset: now + 60_000 }); return true; }
+    slot.count++;
+    return slot.count <= settings.handshakesPerMinute;
+  };
+  const release = (accountId: string | null | undefined, ip: string) => {
+    connections = Math.max(0, connections - 1);
+    const ipCount = (perIp.get(ip) ?? 0) - 1;
+    if (ipCount > 0) perIp.set(ip, ipCount); else perIp.delete(ip);
+    if (accountId) {
+      const accountCount = (perAccount.get(accountId) ?? 0) - 1;
+      if (accountCount > 0) perAccount.set(accountId, accountCount); else perAccount.delete(accountId);
+    }
+  };
+
   const matchmaking = new Matchmaking(service);
   const identities = new Map<string, { playerId: string; socketId: string; expires: number; accountId: string | null }>();
   io.use(async (socket, next) => {
-    try { socket.data.accountId = await resolveAccount(socket.handshake.headers.cookie); next(); }
-    catch { next(new Error('Oturum doğrulanamadı.')); }
+    const ip = clientAddress(socket);
+    if (!handshakeAllowed(ip)) return next(new Error('Çok fazla bağlantı denemesi.'));
+    let accountId: string | null = null;
+    try { accountId = await resolveAccount(socket.handshake.headers.cookie); }
+    catch { return next(new Error('Oturum doğrulanamadı.')); }
+    if (connections >= settings.maxConnections) return next(new Error('Sunucu kapasitesi dolu.'));
+    if ((perIp.get(ip) ?? 0) >= settings.maxPerIp) return next(new Error('Bu ağdan çok fazla bağlantı.'));
+    if (accountId && (perAccount.get(accountId) ?? 0) >= settings.maxPerAccount) return next(new Error('Bu hesaptan çok fazla bağlantı.'));
+    connections++; perIp.set(ip, (perIp.get(ip) ?? 0) + 1);
+    if (accountId) perAccount.set(accountId, (perAccount.get(accountId) ?? 0) + 1);
+    socket.data.accountId = accountId;
+    socket.data.ip = ip;
+    next();
   });
   io.on('connection', socket => {
+    socket.on('disconnect', () => release(socket.data.accountId as string | null | undefined, String(socket.data.ip ?? 'unknown')));
     const limits = new Map<string, { count: number; reset: number }>();
     const allowed = (key: string, max: number) => {
       const now = Date.now(); const slot = limits.get(key);
@@ -81,14 +142,19 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
   const repository = new FootballRepository(pool);
-  const { io, httpServer } = createSocketServer(new MatchService(() => repository.catalog()), async () => { await pool.query('SELECT 1'); await repository.catalog(); if (process.env.BETTER_AUTH_URL) await pool.query('SELECT 1 FROM golvia_auth."user" LIMIT 1'); return true; });
+  const journal = new PostgresMatchJournal(pool, 'versus');
+  const service = new MatchService(() => repository.catalog(), undefined, journal);
+  // Any match left open by a previous socket process is over; it cannot be resumed in memory.
+  const closed = await journal.recover();
+  if (closed) console.log(`Golvia closed ${closed} unfinished matches from a previous process`);
+  const { io, httpServer } = createSocketServer(service, async () => { await pool.query('SELECT 1'); await repository.catalog(); if (process.env.BETTER_AUTH_URL) await pool.query('SELECT 1 FROM golvia_auth."user" LIMIT 1'); return true; });
   httpServer.listen(Number(process.env.WS_PORT ?? 3001), process.env.WS_HOST ?? (process.env.NODE_ENV === 'production' ? '127.0.0.1' : '0.0.0.0'), () => console.log('Golvia Socket.IO ready'));
   let stopping = false;
   const stop = () => {
     if (stopping) return; stopping = true;
     io.emit('serverRestarting');
     const deadline = setTimeout(() => process.exit(1), 10_000); deadline.unref?.();
-    io.close(() => { void Promise.all([pool.end(), closeAuth()]).then(() => { clearTimeout(deadline); process.exit(0); }); });
+    io.close(() => { void Promise.all([service.shutdown('server-restart'), pool.end(), closeAuth()]).then(() => { clearTimeout(deadline); process.exit(0); }); });
   };
   process.once('SIGINT', stop); process.once('SIGTERM', stop);
 }

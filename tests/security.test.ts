@@ -90,3 +90,57 @@ test('account-bound socket refuses revoked actions and cross-account resume', { 
     assert.notEqual(other.playerId, session.playerId);
   } finally { a.disconnect(); b?.disconnect(); await new Promise<void>(resolve => server.io.close(() => resolve())); }
 });
+
+async function listening(server: ReturnType<typeof createSocketServer>) {
+  server.httpServer.listen(0, '127.0.0.1'); await once(server.httpServer, 'listening');
+  const address = server.httpServer.address(); assert.ok(address && typeof address !== 'string');
+  return `http://127.0.0.1:${address.port}`;
+}
+const syntheticService = () => new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(), playerIds: new Set(), links: new Map() }));
+const waitForError = (socket: ReturnType<typeof client>) => new Promise<void>(resolve => socket.once('connect_error', () => resolve()));
+const waitForConnect = (socket: ReturnType<typeof client>) => new Promise<void>(resolve => socket.once('connect', () => resolve()));
+
+test('socket rejects connections above the per-IP admission limit', { timeout: 8000 }, async () => {
+  const server = createSocketServer(syntheticService(), async () => true, async () => null, { maxPerIp: 1, maxConnections: 10, handshakesPerMinute: 100 });
+  const url = await listening(server);
+  const first = client(url, { autoConnect: false, reconnection: false, transports: ['websocket'] });
+  const second = client(url, { autoConnect: false, reconnection: false, transports: ['websocket'] });
+  try {
+    const ready = waitForConnect(first); first.connect(); await ready;
+    const rejected = waitForError(second); second.connect(); await rejected;
+    assert.equal(second.connected, false);
+  } finally { first.disconnect(); second.disconnect(); await new Promise<void>(resolve => server.io.close(() => resolve())); }
+});
+
+test('socket rejects handshake bursts from one address', { timeout: 8000 }, async () => {
+  const server = createSocketServer(syntheticService(), async () => true, async () => null, { maxPerIp: 50, maxConnections: 50, handshakesPerMinute: 2 });
+  const url = await listening(server);
+  const sockets = [0, 1, 2].map(() => client(url, { autoConnect: false, reconnection: false, transports: ['websocket'] }));
+  try {
+    const firstReady = waitForConnect(sockets[0]); sockets[0].connect(); await firstReady;
+    const secondReady = waitForConnect(sockets[1]); sockets[1].connect(); await secondReady;
+    const rejected = waitForError(sockets[2]); sockets[2].connect(); await rejected;
+    assert.equal(sockets[2].connected, false);
+  } finally { for (const socket of sockets) socket.disconnect(); await new Promise<void>(resolve => server.io.close(() => resolve())); }
+});
+
+test('socket rejects connections above the per-account limit', { timeout: 8000 }, async () => {
+  const server = createSocketServer(syntheticService(), async () => true, async cookie => cookie?.split('=')[1] ?? null, { maxPerAccount: 1, maxPerIp: 20, maxConnections: 20, handshakesPerMinute: 100 });
+  const url = await listening(server);
+  const cookie = { Cookie: 'better-auth.session_token=shared-account' };
+  const first = client(url, { autoConnect: false, reconnection: false, transports: ['websocket'], extraHeaders: cookie });
+  const second = client(url, { autoConnect: false, reconnection: false, transports: ['websocket'], extraHeaders: cookie });
+  try {
+    const ready = waitForConnect(first); first.connect(); await ready;
+    const rejected = waitForError(second); second.connect(); await rejected;
+    assert.equal(second.connected, false);
+  } finally { first.disconnect(); second.disconnect(); await new Promise<void>(resolve => server.io.close(() => resolve())); }
+});
+
+test('shutdown closes live matches so no stale resume is offered', async () => {
+  const now = 0;
+  const service = new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(['a']), playerIds: new Set(['p']), links: new Map([['p', new Set(['a'])]]) }), () => now);
+  const created = await service.create();
+  await service.shutdown('server-restart');
+  await assert.rejects(service.transact(created.id, created.tokens[0]), (error: { status: number }) => error.status === 404, 'a restarted process must not resume an in-memory match');
+});

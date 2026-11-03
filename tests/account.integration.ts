@@ -50,6 +50,8 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
   process.env.BETTER_AUTH_SECRET = randomBytes(32).toString('hex');
   process.env.SMTP_URL = `smtp://127.0.0.1:${address.port}`;
   process.env.SMTP_FROM = 'Golvia <no-reply@golvia.test>';
+  // Simulate a reverse proxy that overwrites x-real-ip; production must opt in the same way.
+  process.env.TRUST_PROXY = 'true';
   const { getAuth, closeAuth } = await import('../src/server/auth.ts');
   const { socketAccount } = await import('../src/server/socketAuth.ts');
   const auth = getAuth();
@@ -87,6 +89,7 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
     assert.ok(resetRedirect.status >= 300 && resetRedirect.status < 400);
     const token = new URL(resetRedirect.headers.get('location')!, base).searchParams.get('token'); assert.ok(token);
     assert.equal((await post('/reset-password', { token, newPassword: nextPassword })).status, 200);
+    assert.notEqual((await post('/reset-password', { token, newPassword: `Again-${randomBytes(12).toString('hex')}` })).status, 200, 'password reset tokens must be single use');
     assert.equal((await (await get('/get-session', cookie)).json())?.user ?? null, null, 'password reset must revoke old session');
     assert.notEqual((await post('/sign-in/email', { email, password })).status, 200);
     const relogin = await post('/sign-in/email', { email, password: nextPassword }); assert.equal(relogin.status, 200);
@@ -109,12 +112,18 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
     assert.equal((await db.query('SELECT count(*) FROM golvia_auth."user" WHERE email=$1', [email])).rows[0].count, '0');
     assert.equal((await (await get('/get-session', finalCookie)).json())?.user ?? null, null);
     assert.equal((await (await get('/get-session', secondCookie)).json()).user.email, otherEmail, 'another account remains accessible only by its own session');
-    assert.equal((await post('/delete-user', { password }, secondCookie)).status, 200);
+    const { activeSession } = await import('../src/server/auth.ts');
+    await db.query("UPDATE golvia_auth.\"user\" SET status='suspended' WHERE email=$1", [otherEmail]);
+    assert.equal(await activeSession(new Headers({ cookie: secondCookie })), null, 'suspended accounts lose session access');
+    assert.equal(await socketAccount(secondCookie), null);
+    assert.equal((await db.query('SELECT count(*) FROM golvia_auth.session WHERE "userId"=(SELECT id FROM golvia_auth."user" WHERE email=$1)', [otherEmail])).rows[0].count, '0', 'suspension revokes stored sessions on first use');
+    await db.query("UPDATE golvia_auth.\"user\" SET status='active' WHERE email=$1", [otherEmail]);
+    assert.equal(await activeSession(new Headers({ cookie: secondCookie })), null, 'reactivation does not restore revoked sessions');
     const attempts: number[] = [];
     for (let i = 0; i < 6; i++) attempts.push((await post('/sign-in/email', { email: 'nobody@golvia.test', password }, undefined, '127.0.0.4')).status);
     assert.equal(attempts.at(-1), 429, 'the sixth sign-in attempt from one IP is rate limited');
   } finally {
     await db.query('DELETE FROM golvia_auth."user" WHERE email=$1 OR email=$2', [email, otherEmail]);
-    await db.end(); await closeAuth(); sink.server.close();
+    await db.end(); await closeAuth(); sink.server.close(); delete process.env.TRUST_PROXY;
   }
 });

@@ -51,9 +51,26 @@ function createAuth() {
       '/sign-up/email': { window: 600, max: 5 },
       '/request-password-reset': { window: 600, max: 3 },
     } },
-    advanced: { ipAddress: { ipAddressHeaders: ['x-real-ip'] } },
+    // Only trust a forwarding header when the deployment explicitly states that a reverse proxy
+    // overwrites it. Otherwise an attacker could rotate spoofed x-real-ip values to evade limits.
+    advanced: process.env.TRUST_PROXY === 'true' ? { ipAddress: { ipAddressHeaders: ['x-real-ip'] } } : {},
   });
 }
 let instance: ReturnType<typeof createAuth> | undefined;
 export function getAuth() { return instance ??= createAuth(); }
+
+/**
+ * Returns the session only for an active account. Suspended/inactive accounts have every stored
+ * session revoked on first use, so HTTP and Socket.IO stop honoring credentials immediately.
+ */
+export async function activeSession(headers: Headers) {
+  const config = accountConfiguration();
+  if (!config.database || !config.secret || !config.origin) return null;
+  const session = await getAuth().api.getSession({ headers });
+  if (!session?.user) return null;
+  const status = 'status' in session.user ? String(session.user.status) : 'active';
+  if (status === 'active') return session;
+  await authPool?.query('DELETE FROM golvia_auth.session WHERE "userId" = $1', [session.user.id]).catch(() => undefined);
+  return null;
+}
 export async function closeAuth() { await authPool?.end(); authPool = undefined; instance = undefined; }
