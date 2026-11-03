@@ -13,3 +13,4 @@ data/club-catalog.top100.progress.json
 data/club-catalog.top100.review.json
 data/club-catalog.top100.json.backup-*
 *.tmp
+.local/

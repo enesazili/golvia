@@ -8,11 +8,13 @@ import { FootballRepository } from '../src/server/football/repository.ts';
 import { connects, type Dataset } from '../src/server/football/types.ts';
 import { normalize } from '../src/server/football/normalize.ts';
 test('real PostgreSQL migration, import, queries and relation rules', async t => {
-  assert.ok(process.env.DATABASE_URL, 'DATABASE_URL required; this test must not silently skip');
-  const admin = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adminUrl = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL;
+  assert.ok(adminUrl, 'DATABASE_ADMIN_URL or DATABASE_URL required; this test must not silently skip');
+  // Migrations and temporary test schemas need a role with DDL rights; the runtime app role stays read-only for football data.
+  const admin = new Pool({ connectionString: adminUrl });
   const schema = `golvia_test_${randomUUID().replaceAll('-', '')}`;
   await admin.query(`CREATE SCHEMA ${schema}`);
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, options: `-c search_path=${schema},public` });
+  const pool = new Pool({ connectionString: adminUrl, options: `-c search_path=${schema},public` });
   try {
     const sql = await readFile(new URL('../src/server/football/schema.sql', import.meta.url), 'utf8');
     await pool.query(sql); await pool.query(sql);

@@ -1,17 +1,19 @@
 import { readFile } from 'node:fs/promises';
 import { Pool } from 'pg';
 import { importDataset } from '../src/server/football/importer.ts';
-if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL required; copy .env.example to .env');
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+const adminUrl = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL;
+if (!adminUrl) throw new Error('DATABASE_ADMIN_URL or DATABASE_URL required; copy .env.example to .env');
+const pool = new Pool({ connectionString: adminUrl, max: 1 });
 try {
   const command = process.argv[2];
-  if (command === 'migrate') {
+  if (command === 'migrate' || command === 'auth-migrate') {
     const client = await pool.connect();
-    try { await client.query('BEGIN'); await client.query('SELECT pg_advisory_xact_lock(3212026)'); await client.query(await readFile(new URL('../src/server/football/schema.sql', import.meta.url), 'utf8')); await client.query('COMMIT'); }
+    try { await client.query('BEGIN'); await client.query('SELECT pg_advisory_xact_lock(3212026)'); await client.query(await readFile(new URL(command === 'migrate' ? '../src/server/football/schema.sql' : '../src/server/auth/schema.sql', import.meta.url), 'utf8')); await client.query('COMMIT'); }
     catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   } else if (command === 'import') {
-    const path = process.argv[3] ?? new URL('../data/football.seed.json', import.meta.url);
+    const path = process.argv[3];
+    if (!path) throw new Error('Explicit dataset path required. Example: npm run db:import -- data/football.reviewed.json');
     await importDataset(pool, JSON.parse(await readFile(path, 'utf8')));
-  } else throw new Error('Use migrate or import [path]');
+  } else throw new Error('Use migrate, auth-migrate or import [path]');
   console.log(`Database ${command}: OK`);
 } finally { await pool.end(); }

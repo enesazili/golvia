@@ -1,16 +1,17 @@
 import { SessionError } from './game/service';
 import type { Action } from './game/engine';
+import { publicOrigin } from './config';
 export function json(data: unknown, status = 200, headers: Record<string, string> = {}) {
   return Response.json(data, { status, headers: { 'Cache-Control': 'no-store', ...headers } });
 }
 export function failure(error: unknown) {
   if (error instanceof SessionError) return json({ error: error.message }, error.status);
-  console.error('Golvia request failed:', error instanceof Error ? error.message : 'unknown');
-  return json({ error: 'Sunucuya erişilemiyor. Veritabanını ve bağlantıyı kontrol et.' }, 503);
+  console.error('Golvia request failed', { kind: error instanceof Error ? error.name : 'unknown' });
+  return json({ error: 'Sunucuya şu anda erişilemiyor.' }, 503);
 }
 export async function body(request: Request): Promise<Record<string, unknown>> {
   // Next may normalize request.url to localhost; Host retains the browser's actual origin.
-  const expectedOrigin = `${new URL(request.url).protocol}//${request.headers.get('host') ?? new URL(request.url).host}`;
+  const expectedOrigin = publicOrigin() ?? `${new URL(request.url).protocol}//${request.headers.get('host') ?? new URL(request.url).host}`;
   if (request.headers.get('origin') !== expectedOrigin) throw new SessionError(403, 'İstek kaynağı doğrulanamadı.');
   if (!request.headers.get('content-type')?.startsWith('application/json')) throw new SessionError(415, 'JSON gerekli.');
   const reader = request.body?.getReader();

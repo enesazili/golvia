@@ -14,7 +14,7 @@ function reviewedDataset(): Promise<Dataset> {
   }).catch(error => { reviewed = undefined; throw error; });
   return reviewed;
 }
-function databaseUnavailable(error: unknown): boolean { return !!error && typeof error === 'object' && 'code' in error && error.code === 'ECONNREFUSED'; }
+function databaseUnavailable(error: unknown): boolean { return process.env.NODE_ENV !== 'production' && !!error && typeof error === 'object' && 'code' in error && error.code === 'ECONNREFUSED'; }
 export class FootballRepository {
   constructor(private readonly pool: Pool) {}
   async selections(): Promise<Suggestion[]> {

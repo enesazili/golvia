@@ -33,14 +33,16 @@ Doğum tarihleri Wikidata P569; alternatif isimler Wikidata isim/alias alanları
 
 Arama Unicode NFD + Türkçe küçük harf + aksan kaldırma + ı/i normalizasyonu kullanır. SQL değerleri parametrelenir; `%`, `_` ve ters eğik çizgi literal olarak kaçırılır. Alias üzerinden alt dize araması, `pg_trgm` GIN indeksi ve 20 sonuç sınırı vardır; prefix indeksi de hazırdır. Kısa sorgu/small dataset için PostgreSQL sıralı tarama seçebilir. Gelecekte büyük veri üzerinde EXPLAIN/performans ölçümü gerekir.
 
-Maç oluşturulurken repeatable-read transaction ile katalog snapshot'ı alınır; doğru cevap bağlantıları tarayıcıya gönderilmez. PostgreSQL bağlantısı reddedilirse sunucu yalnız yerel, incelemeli football.reviewed.json dosyasını salt okunur yedek olarak kullanır; doğrulanmamış adaylar oyuna alınmaz.
+Maç oluşturulurken repeatable-read transaction ile katalog snapshot'ı alınır; doğru cevap bağlantıları tarayıcıya gönderilmez. Geliştirmede PostgreSQL bağlantısı reddedilirse sunucu yalnız yerel, incelemeli football.reviewed.json dosyasını salt okunur yedek olarak kullanır; üretimde bağlantı hatası güvenli biçimde isteği başarısız kılar. Doğrulanmamış adaylar oyuna alınmaz.
 
 ## Yeni veri içe aktarma
 
 ```powershell
 npm run db:migrate
-npm run db:import -- D:\Projeler\golvia\data\football.seed.json
+npm run db:import -- D:\golvia\data\football.reviewed.json
 ```
+
+`db:migrate`, `db:import` ve `test:db` yönetici rolüyle `DATABASE_ADMIN_URL` kullanır (tanımlı değilse `DATABASE_URL`). Uygulama runtime'ı yalnız sınırlı `golvia_app` rolüyle `DATABASE_URL` üzerinden okur. `db:import` açık dosya yolu olmadan hata verir; varsayılan seed yüklemesi yoktur. Gerçek parola/URL'leri Git'e veya belgeye yazma.
 
 Seed JSON, import sözleşmesinin örneğidir: `version`, `sources`, `entities`, `careers`. Kimlik, referans türü, duplicate ID, dönem sırası, kaynak/lisans ve alan türleri yazmadan önce doğrulanır. Kabul edilen veri lisansı şimdilik CC0-1.0 ile sınırlıdır; diğer lisanslar için importer politikası ayrıca geliştirilmelidir.
 

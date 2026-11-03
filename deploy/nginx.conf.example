@@ -1,0 +1,40 @@
+# Copy into an nginx http context after replacing the domain and certificate paths.
+# Next.js and Socket.IO bind to 127.0.0.1 on a single host.
+map $http_upgrade $golvia_connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+server {
+    listen 80;
+    server_name __GOLVIA_DOMAIN__;
+    return 308 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name __GOLVIA_DOMAIN__;
+    ssl_certificate __CERTIFICATE_FULLCHAIN_PATH__;
+    ssl_certificate_key __CERTIFICATE_KEY_PATH__;
+
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $golvia_connection_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 70s;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}

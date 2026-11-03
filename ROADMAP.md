@@ -21,11 +21,12 @@
 - [x] Mevcut Socket.IO bağlantısını gerçek MatchService ile çalışır hale getirme.
 - [ ] Push olay yayını ve bağımsız sunucu zamanlayıcısı.
 - [x] Tek süreçte insan-insan misafir 1v1 kuyruğu; socket kimliğine bağlı katılım ve iki gerçek istemci testi.
-- [ ] Yeniden bağlanma, kopma/hükmen yenilgi ve gecikme politikası.
+- [x] Tek süreçte 15 saniye yeniden bağlanma ve rakibe kopma bildirimi.
+- [ ] Uzun kopma, hükmen yenilgi ve ağ gecikmesi politikası.
 - [ ] Tek süreç bellek deposunu yayın gereksinimine göre kalıcı/dağıtık oturum deposuyla değiştir; atomik maç sahipliği ve idempotency garantilerini koru.
 - [ ] Çoklu worker, ağ gecikmesi, sıra bozulması ve bağlantı testleri.
 
-## Phase 4 · Başlamadı
+## Phase 4 · Hesap temeli başlatıldı; tamamlanmadı
 - [ ] Hesap ve oturum yönetimi, rekabetçi eşleşme.
 - [ ] Oyun başına kalıcı/sezonsuz ELO ve lig; genel futbol sıralaması.
 - [ ] Profil, istatistikler ve tek seferlik rating transaction işlemleri.
@@ -102,3 +103,43 @@ Detaylı kanıtlar ve güncel sınırlamalar: PROJECT_CONTEXT.md. Veri kapsamı:
 - [ ] Fiziksel telefon + bilgisayarla eşzamanlı maç ve uzun süreli kopma testi.
 - [ ] PostgreSQL açıldığında arama SQL'i ve importun `test:db` ile doğrulanması.
 - [ ] Zlatan Ibrahimović gibi henüz incelemeli havuzda olmayan oyuncular için bağımsız oynama kanıtı incelemesi.
+
+## Production hazırlığı — 3 Kasım 2026
+
+- [x] Futbol odaklı ana sayfa, oyun, hesap, hata/404 düzeni; iki tema ve 390/768/1366/1920 piksel yatay taşma kontrolü.
+- [x] Same-origin proxy tasarımı, WebSocket Origin kontrolü, hız sınırı, health/readiness, restart bildirimi, ortam preflight, güvenli HTTP başlıkları.
+- [x] Better Auth hesap şeması ve arayüz kodu; e-posta sağlayıcısı yoksa kayıt kapalı, misafir oyun korunur.
+- [x] Production bağımlılık audit 0; tüm bağımlılıklarda 16 orta seviye geliştirme aracı uyarısı.
+- [ ] PostgreSQL yedeği ve izole geri yükleme sonrası futbol + auth migrasyonu/importu ve test:db.
+- [ ] Gerçek SMTP ile kayıt, doğrulama, sıfırlama, oturum iptali, hesap durum yetkilendirmesi ve gizlilik/ihracat/silme akışı.
+- [ ] İki gerçek cihazla tekrar 1v1, uzun kopma, restart ve yük testi.
+- [ ] Bellek maçlarını kalıcı atomik sahiplik modeline taşıma; sonra çoklu replica/adapter ve güvenli rolling deploy.
+- [ ] Nonce tabanlı CSP, reverse proxy güvenlik testi, ASVS 5.0 kapsamlı inceleme ve kullanılabilirlik/erişilebilirlik denetimi.
+- [ ] Barındırma, TLS, SMTP, backup/restore ve yasal/gizlilik gereksinimleri tamamlanınca canlıya çıkış kararı.
+
+## İzole staging DB ve güvenli hesap — 3 Kasım 2026
+
+- [x] PostgreSQL 17 izole loopback cluster; futbol/auth migration ve çift import; 28 oyuncu, 24 kulüp, 72 kariyer/oyun bağı.
+- [x] Sınırlı uygulama rolü ve salt okunur futbol erişimi; gerçek PostgreSQL araması ve oyun kataloğu.
+- [x] Custom yedek ve ayrı DB'ye geri yükleme; ID özetleri doğrulandı.
+- [x] Yerel SMTP alıcısı ile sentetik hesap kayıt/doğrulama/giriş/çıkış/sıfırlama/silme/oturum/429 ve iki hesap izolasyonu testleri.
+- [x] Better Auth çerezine bağlı Socket.IO kimliği; iptal edilen oturum ve başka hesapla resume reddi; misafir desteği.
+- [x] Production socket readiness ve gerçek DB destekli iki istemcili eşleşme başlangıcı.
+- [ ] Gerçek SMTP sağlayıcısı, TLS ve domain ile uçtan uca teslimat/hesap doğrulaması.
+- [ ] npm start production sürecinin izin verilen ortamda uçtan uca başlatılması; burada otomatik işlem denetimi engelledi.
+- [ ] Kalıcı/atomik maç deposu; restartta maçları kurtarma veya sonuç kaydı; çoklu replica.
+- [ ] Canlıya çıkmadan gerçek proxy, yedek saklama/geri yükleme, yük ve güvenlik testleri.
+
+## Production stabilizasyon turu — 3 Kasım 2026
+
+- [x] TS2704 (`NODE_ENV` readonly delete) düzeltmesi; `.local` ve üretilen klasörler için ESLint ignore; lint, typecheck ve build yeşil.
+- [x] `.env` çalışan staging PostgreSQL'e bağlandı; uygulama/admin/test URL ayrımı; `db:import` açık dosya yolu zorunluluğu.
+- [x] Staging migration, auth migration ve reviewed import tekrarı; 28 oyuncu, 24 kulüp, 72 doğrulanmış kariyer korundu; `test:db` 9/9.
+- [x] Parola sıfırlama belirtecini URL'den temizleme, mutlak reset yönlendirmesi, pasif hesabı gizleme; `test:account` izole DB ile geçti.
+- [x] Antrenman oluşturmada IP başına ve süreç geneli hız sınırı ayrımı.
+- [x] `npm start` ve Socket.IO production süreçlerinde health/readiness doğrulaması; preflight `.env` okuması.
+- [x] Yerel Git kontrol noktası (push yok); sırlar ve ham veri commit dışında.
+- [ ] Gerçek SMTP sağlayıcısı, domain, TLS ve reverse proxy ile uçtan uca hesap/e-posta doğrulaması.
+- [ ] Nonce tabanlı CSP, süreç dışı/paylaşımlı rate limit ve socket bağlantı/IP limiti.
+- [ ] Kalıcı maç sahipliği, restart kurtarma ve çoklu replica güvenliği.
+- [ ] İki gerçek cihazla E2E, uzun kopma, yük testi ve canlı yedek geri yükleme provası.

@@ -1,25 +1,26 @@
 # Golvia — Proje bağlamı
 
-Son güncelleme: 1 Kasım 2026. Phase 2 tamamlandı. Phase 3 kullanıcı onayı bekliyor.
+Son güncelleme: 3 Kasım 2026. Phase 2 tamamlandı. Phase 3 altyapısı onarıldı, tamamlanmadı. Production stabilizasyon turu yapıldı.
 
 ## Konum ve çalıştırma
 
-Proje `D:\Projeler\golvia`. Mevcut Phase 1 tasarımı korundu; diğer projeler değiştirilmedi. Proje üst klasöründeki Git deposunda başka projelerin değişiklikleri var; bunlara dokunulmadı. Commit, push veya yayın yapılmadı.
+Proje `D:\golvia`. Mevcut Phase 1 tasarımı korundu; diğer projeler değiştirilmedi. Commit, push veya yayın yapılmadı.
 
-Node.js 24.22.1 / npm 11.19.1 ile doğrulandı. Next.js 16.4.3, React 19.3.1, TypeScript strict, Tailwind 4.3.3 korunuyor. PostgreSQL 17 ayrı Docker Compose projesinde (`golvia-phase2`) ve yalnızca `127.0.0.1:5437` üzerinde. Veri kalıcı Docker volume içinde. Gerçek PostgreSQL bağlantısı kullanılır; sahte/veritabanısız fallback yoktur.
+Node.js 24.22.1 / npm 11.19.1 ile doğrulandı. Next.js 16.4.3, React 19.3.1, TypeScript strict, Tailwind 4.3.3 korunuyor. Geliştirmede kullanılan PostgreSQL 17.11 kümesi `.local/postgres` altında, yalnızca `127.0.0.1:55437` üzerinde ve Git dışındadır. `compose.yaml` (Docker, `127.0.0.1:5437`) alternatif olarak durur ama bu ortamda çalışmıyor. Gerçek PostgreSQL bağlantısı kullanılır; üretimde sahte/veritabanısız fallback yoktur; geliştirmede yalnız `ECONNREFUSED` durumunda incelenmiş JSON salt okunur yedek olarak kullanılır.
+
+Rol ayrımı: `DATABASE_URL` sınırlı `golvia_app` rolüdür (futbol tablolarında yalnız SELECT, auth tablolarında CRUD, şema CREATE yok). `DATABASE_ADMIN_URL` yalnız migration, import ve DB testleri içindir. `db:import` açık veri yolu ister; varsayılan seed yüklemesi yoktur.
 
 ```powershell
-cd D:\Projeler\golvia
+cd D:\golvia
 npm ci
-# İlk kurulum: .env.example dosyasını .env olarak kopyala;
-# iki yerdeki parola değerini aynı, rastgele yerel parola ile değiştir.
-docker compose -p golvia-phase2 up -d --wait
+# .env: DATABASE_URL sınırlı golvia_app rolü; DATABASE_ADMIN_URL yalnız migration/import/test için.
+# Gerçek sırları Git'e veya rapora yazma.
 npm run db:migrate
-npm run db:import
+npm run db:import -- data/football.reviewed.json
 npm run dev -- --port 3211
 ```
 
-Bu çalışma sırasında `.env` rastgele parola ile oluşturuldu ve Git dışında bırakıldı. Parolayı belgelere/sohbete yazma. Mevcut `.env` dosyasını ezme. Üretim önizlemesi: `npm run build` ardından `npm run start -- --port 3211`. Ana sayfa `/`, antrenman `/oyun/3-2-1`. Başlangıçtaki 3210 sunucusu durdurulmadı; Phase 2 önizlemesi 3211'de doğrulandı.
+Bu çalışma sırasında `.env` rastgele parola ile oluşturuldu ve Git dışında bırakıldı. Parolayı belgelere/sohbete yazma. Mevcut `.env` dosyasını ezme. Üretim önizlemesi: `npm run build` ardından `npm run start -- --port 3211`. Ana sayfa `/`, antrenman `/oyun/3-2-1`. Arkadaşlık, ELO ve dereceli maç kapsam dışıdır.
 
 ## Uygulanan mimari
 
@@ -55,7 +56,7 @@ Bu çalışma sırasında `.env` rastgele parola ile oluşturuldu ve Git dışı
 - `GET /api/practice`: cookie ile kişiye özel `view`, `serverNow`, deadline ve revision; Cache-Control no-store.
 - `POST /api/practice`: `{requestId, round, attempt, type: "choose" | "answer", id}`. Kabul 200; oyun reddi 409 ve işlem makbuzu; bozuk istek 400, kimlik yok 401, kaynak/yetki 403, oturum yok 404, sınır 429, altyapı sorunu 503.
 - `GET /api/football?kind=selection|player&q=...`: en fazla 80 karakter sorgu, en fazla 20 öneri. İsim, ID, doğum tarihi ayırt edicisi; oyuncu bağlantıları yok.
-- POST aynı origin ister, gövde akış üzerinden 2 KB ile sınırlanır. En fazla 500 oturum, 30 dakikalık mutlak TTL, maç başına en fazla 2048 farklı işlem makbuzu; dakikada 30 yeni antrenman (süreç genelinde).
+- POST aynı origin ister, gövde akış üzerinden 2 KB ile sınırlanır. En fazla 500 oturum, 30 dakikalık mutlak TTL, maç başına en fazla 2048 farklı işlem makbuzu; IP başına dakikada 30, süreç genelinde dakikada 300 yeni antrenman.
 - UI 250 ms aralıkla HTTP durum okur. Geri sayım sunucu zamanından görselleştirilir; karar vermez. Eski revision yanıtları yok sayılır. İşlem sırasında çift tıklama kilitli; ağ hatasında aynı istek kimliğiyle tekrar düğmesi vardır. Oturum sona erince yeni antrenman açılabilir.
 
 ## Gerçek ve simüle kısımlar
@@ -178,3 +179,41 @@ Kontroller: npm test 45/45, lint, TypeScript, production build, dört JSON kalit
 - Gelecekteki checkpoint açılışında `jobs(done)` ve `roles(role,id)` indeksleri kurulacak; dışa aktarım rol okumaları N+1 yerine tek sorguyla yapılır. PostgreSQL migrasyonuna yalnız `verified && appeared` takım/oyuncu kısmi indeksi eklendi. Aday import artık incelenmiş oyun veri sürümünü değiştirmez. Gerçek PostgreSQL migration/import uygulanmadı; `127.0.0.1:5437` bağlantısı reddedildi. Büyük JSON importu hâlâ tüm dosyayı belleğe alır; ölçek yük testi ve parça parça import ayrı iş olarak kalır.
 - Katalog A kulüpleri `members`, P54 referansları yalnız `entity/team` işi ekler; ID/rol anahtarı ve varlık önbelleği tekrar indirmeyi önler. Eski checkpoint'teki genel `discover` işleri hâlâ bekler; mevcut kuyruğu veri kaybı yaşamadan A kataloğuna daraltmak için iş kökeni kaydı gerekir. Yeni toplama başlatılmadı ve tam A-only devam hazır ilan edilmedi.
 - Son kontroller: `npm test` 39/39, lint, typecheck, build ve dört JSON `data:check` başarılı. `test:db` bağlantı reddi nedeniyle başarısız; yeni SQL migrasyonu ve import sürüm regresyon testi gerçek PostgreSQL'de doğrulanmadı. Multiplayer Socket.IO testleri otomatik pakette geçti; çalışan harici süreçler yeniden başlatılmadı.
+
+## Production hazırlığı — 3 Kasım 2026
+
+- Ana sayfa, 3-2-1 girişi/maçı, hesap temeli ve 404/500 ekranları futbol yayın estetiğiyle yeniden tasarlandı. Kullanıcıya görünen PREVIEW/demo metni ve örnek taktik kartı çıkarıldı; simüle antrenman rakibi açıkça belirtilir. 390, 768, 1366 ve 1920 piksel tarayıcı kontrollerinde yatay taşma görülmedi; 390 piksel başlık kırılması düzeltildi. Gerçek cihaz ve iki insanla yeni uçtan uca maç yapılmadı.
+- Tek Next + tek Socket.IO süreci için aynı HTTPS origin ve reverse proxy yolu /socket.io planlandı. WebSocket Origin denetimi, olay hız sınırı, health/live ve health/ready, sunucu yeniden başlama bildirimi, üretim preflight ve güvenli HTTP başlıkları eklendi. Eski HTTP eşleşme rotası sahte başarı yerine 410 döner. Maçlar bellekte: restartta kaybolur, çoklu replica güvenli değildir.
+- Üretimde PostgreSQL yoksa incelenmiş JSON yedeği kullanılmaz; readiness 503 döner. Geliştirmede salt okunur yedek sürer. football.reviewed.json: 28 oyuncu, 24 senior kulüp, 72 verified + appeared kariyer. Ham JSON/SQLite/WAL/SHM değiştirilmedi, canlı temizlik/import yapılmadı. Ham paketler public/ dışında tutulur ve üretim artefaktına kopyalanmamalıdır.
+- Better Auth 1.7.15: ayrı golvia_auth şeması, kullanıcı/oturum/hesap/doğrulama tabloları, kullanıcı adı ve durum alanı, e-posta doğrulama, parola sıfırlama, çıkış ve diğer oturumları sonlandırma kodu eklendi. Kütüphane varsayılanı scrypt, asgari parola 12 karakter, oturum 24 saat. SMTP yokken kayıt/sıfırlama kapalıdır. Hesap henüz misafir maçına veya ELO'ya bağlanmaz; durum alanı askıya alma politikası uygulamaz. PostgreSQL/SMTP kapalı olduğu için uçtan uca hesap akışı doğrulanmadı.
+- Üretim npm audit: 0; tüm bağımlılıklar: 16 moderate geliştirme aracı bildirimi. CSP, HSTS, nosniff ve gizlilik başlıkları eklendi. CSP production'da Next iç betikleri için unsafe-inline içerir; nonce tabanlı politika bekliyor. Proxy X-Real-IP başlığını güvenilir değerle yeniden yazmalı ve iç portlar internete açılmamalı. ASVS 5.0 tam denetimi yapılmadı.
+- Yerel kontroller: 43 test, lint, typecheck, build ve HTTP testi geçti. Readiness ve hesap API'si PostgreSQL yokken 503, eski eşleşme HTTP rotası 410 döndü. test:db ECONNREFUSED 127.0.0.1:5437; auth SQL ve gerçek kayıt/SMTP akışı PostgreSQL'de doğrulanmadı. Deploy yapılmadı.
+
+### Tek sunuculu kurulum sırası (uygulanmadı)
+
+1. Gerçek ortamda NODE_ENV=production, GOLVIA_PUBLIC_ORIGIN ve BETTER_AUTH_URL aynı HTTPS origin, güçlü BETTER_AUTH_SECRET, DATABASE_URL, gerektiğinde SMTP_URL/SMTP_FROM ayarla. Secret/DB URL'sini Git'e koyma. Proxy TLS sonlandırsın; /socket.io WebSocket upgrade ile iç socket portuna gitsin. Proxy istemci IP başlıklarını yeniden yazsın.
+2. PostgreSQL'in tamamını pg_dump --format=custom ile yedekle, izole DB'de geri yüklemeyi doğrula. npm ci, npm run build, npm run preflight sonrası ancak yedek ve izole testle npm run db:migrate ve npm run db:auth:migrate uygula. Gerekirse npm run db:import -- data/football.reviewed.json kullan; aday paketini oyun verisi yerine koyma.
+3. Tek Next için npm start, tek socket için npm run socket:prod çalıştır. /api/health?check=ready ile iç socket /health/ready ikisi de 200 olmadan trafik açma. Gerçek kayıt/e-posta, iki cihazlı maç, restart, yedek geri yükleme ve yük testleri canlı açılıştan önce gerekir.
+
+## İzole PostgreSQL ve hesap doğrulaması — 3 Kasım 2026
+
+- Proje yolu D:\golvia. Docker Desktop yerel secrets-engine soket hatasıyla açılmadı; başka konteyner/hacme dokunulmadı. PostgreSQL 17.11-3 Windows ikili arşivi EDB'den .local/postgres altında indirildi, yayımlanmış SHA-256 değeriyle eşleşti; cluster yalnız 127.0.0.1:55437'de çalışır. .local/ Git dışıdır. Mevcut .env, checkpoint, ham JSON ve reviewed JSON değiştirilmedi.
+- Ayrı golvia_stage, golvia_account_test ve golvia_restore_test veritabanları kuruldu. Futbol ve Better Auth migration'ları golvia_stage üzerinde uygulandı; auth migration tekrar uygulanabildi. İncelenmiş paket iki kez import edildi, çoğalma olmadı. Gerçek DB sayımı: 28 oyuncu, 24 senior kulüp, 4 ülke, 4 senior millî takım, 72 kariyer ve 72 oynanabilir bağlantı. FootballRepository sınırlı golvia_app rolüyle Messi araması, katalog ve doğru bağlantı sorgusunu PostgreSQL'den okudu. Dokuz test:db testi geçti.
+- golvia_app rolü yalnız golvia_stage bağlantısı, public/golvia_auth schema USAGE, futbol tabloları SELECT ve auth tabloları SELECT/INSERT/UPDATE/DELETE yetkileriyle kuruldu; schema CREATE ve futbol kariyer INSERT yetkisi yok. Migration yönetici rolüyle yapılır. Yeni migration sonrası izinler yeniden gözden geçirilmeli. Üretimde bu rol/ayrım ayrıca uygulanmalı.
+- pg_dump custom yedeği .local/postgres/golvia_stage.backup olarak alındı; bağımsız golvia_restore_test veritabanına pg_restore ile geri yüklendi. Futbol varlık/kariyer/kaynak ID özetleri birebir eşleşti; 28 oyuncu, 24 kulüp, 72 kariyer ve dört auth tablosu geri geldi. Bu yalnız izole staging geri yükleme testidir; canlı veriye işlem yapılmadı.
+- Better Auth gerçek PostgreSQL üzerinde yerel SMTP alıcısıyla sentetik kullanıcı kaydı, e-posta doğrulama, doğrulanmamış giriş reddi, Secure/HttpOnly çerezi, giriş/çıkış, parola sıfırlama ve eski oturum iptali, benzersiz kullanıcı adı, iki hesap izolasyonu, hesap silme ve 6. giriş denemesinde 429 test edildi. Sentetik hesaplar test DB'sinden temizlendi. Gerçek SMTP sağlayıcısı yapılandırılmadı; üretim e-posta teslimi doğrulanmadı.
+- Socket kimliği mevcut Better Auth çereziyle sunucuda doğrulanır; oturum iptali sonrası hesaplı socket eylemi 401, başka hesapla resume token kullanımı yeni oyuncu kimliği üretir. Misafirler çerez olmadan oynamaya devam eder. Gerçek DB destekli production Socket.IO süreci health/live ve health/ready için 200 verdi; iki istemci eşleşip hazır aşamasını gördü. Yeniden başlatma halinde istemci eski tokenın reddini fark edip maçı iptal olarak gösterir; kalıcı maç kurtarma hâlâ yoktur.
+- Next.js geliştirme süreci sınırlı DB rolüyle /api/health?check=ready 200, /api/auth/get-session 200 ve HTTP antrenman testi başarılı. Üretim Next sürecini başlatma denemesi otomatik işlem denetimince reddedildi; npm start uçtan uca doğrulanmış sayılmaz. Production build ve preflight komutları geçti. Nginx örneği deploy/nginx.conf.example; gerçek domain/TLS/proxy üzerinde test edilmedi.
+
+## Production stabilizasyon turu — 3 Kasım 2026
+
+- Build/TypeScript/ESLint yeşile çevrildi. `tests/security.test.ts` içindeki `NODE_ENV` temizliği `Reflect.deleteProperty` ile yapılıyor (TS2704 giderildi). `eslint.config.mjs` yalnız harici/üretilen klasörleri (`.next`, `node_modules`, `.local`, `out`, `coverage`) hariç tutuyor; proje kaynakları taranmaya devam ediyor. Ölçülen sonuç: `npm test` 45/45, `npm run lint`, `npm run typecheck`, `npm run build` geçti.
+- `.env` çalışan staging kümesine bağlandı: uygulama `golvia_app` ile `golvia_stage`, migration/import/test `DATABASE_ADMIN_URL`, hesap testleri izole `golvia_account_test`. Sırlar yalnız `.env` içinde; Git dışında.
+- `scripts/database.ts` admin URL'sini kullanıyor ve `db:import` açık dosya yolu olmadan hata veriyor. Bu sayede yanlışlıkla seed importu ve reviewed sürümünün ezilmesi engellendi.
+- Staging üzerinde `db:migrate`, `db:auth:migrate` ve `db:import -- data/football.reviewed.json` tekrar çalıştırıldı; sayımlar korundu: 28 oyuncu, 24 kulüp, 4 ülke, 4 A millî takım, 72 kariyer (hepsi verified + appeared), 72 oynanabilir bağ, dataset `reviewed-2026-11-02-v3`, 0 auth kullanıcısı. `npm run test:db` 9/9 geçti.
+- Hesap güvenliği: parola sıfırlama belirteci okunduktan sonra adres çubuğundan siliniyor, sıfırlama yönlendirmesi mutlak origin kullanıyor, askıya alınmış/pasif hesap `/hesap` sayfasında oturum sahibi olarak gösterilmiyor. `npm run test:account` izole DB + yerel SMTP alıcısıyla geçti (gerçek e-posta teslimi değildir).
+- Antrenman oluşturma sınırı IP başına 30/dk ve süreç genelinde 300/dk olarak ayrıştırıldı.
+- Production başlatma doğrulandı: `npm start` üzerinde `/api/health` 200, `/api/health?check=ready` 200, `/api/auth/get-session` 200; Socket.IO sürecinde `/health/live` ve `/health/ready` 200. `npm run preflight` `.env` dosyasını `--env-file-if-exists` ile okuyacak şekilde düzeltildi. Süreçler test sonrası kapatıldı.
+- `npm audit --omit=dev`: 0 bulgu. Geliştirme araçlarındaki moderate bildirimler ayrı raporlanır; zorla sürüm değişikliği yapılmadı.
+- Git: tüm çalışma tek yerel kontrol noktası commit'ine alındı; push yapılmadı. `.env`, `.local/`, SQLite checkpoint/WAL ve ham JSON dosyaları commit dışında tutuldu.
+- Kalan engeller: gerçek SMTP/domain/TLS/reverse proxy doğrulanmadı; maçlar bellekte olduğu için restartta kaybolur ve çoklu replica desteklenmez; CSP production'da `'unsafe-inline'` içerir; rate limit süreç içidir; tarayıcı E2E/yük/iki gerçek cihaz testi yapılmadı. Bunlar bu turda bilinçli olarak ertelendi, çözüldü sayılmaz.
