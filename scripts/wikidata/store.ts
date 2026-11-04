@@ -17,6 +17,7 @@ export class Checkpoint {
       CREATE TABLE IF NOT EXISTS targets(id TEXT PRIMARY KEY);
       CREATE TABLE IF NOT EXISTS legacy(path TEXT PRIMARY KEY,payload TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS jobs_pending ON jobs(done);
+      CREATE INDEX IF NOT EXISTS jobs_pending_kind_role ON jobs(done,json_extract(payload,'$.kind'),json_extract(payload,'$.role'));
       CREATE INDEX IF NOT EXISTS roles_by_role ON roles(role,id);
     `);
     const version = this.db.prepare("SELECT value FROM meta WHERE key='schema'").get();
@@ -50,10 +51,15 @@ export class Checkpoint {
     this.db.prepare('UPDATE jobs SET done=1,error=NULL WHERE key=?').run(jobKey(job));
   }
   pending(): Job[] { return this.db.prepare('SELECT payload FROM jobs WHERE done=0 ORDER BY rowid').all().map(r => JSON.parse(String(r.payload))); }
-  next(excluded: Set<string>): Job | undefined {
+  next(excluded: Set<string>, schedule: 'references' | 'members' | 'balanced' = 'references'): Job | undefined {
     // Resolve referenced teams/countries before the large discovery backlog. This is a
     // scheduling change only: already completed jobs and cached entities stay intact.
+    const waitingPlayers = schedule === 'balanced' ? Number(this.db.prepare("SELECT count(*) AS n FROM jobs WHERE done=0 AND json_extract(payload,'$.kind')='entity' AND json_extract(payload,'$.role')='player'").get()!.n) : 0;
+    const pendingMembers = schedule === 'balanced' ? Number(this.db.prepare("SELECT count(*) AS n FROM jobs WHERE done=0 AND json_extract(payload,'$.kind')='members'").get()!.n) : 0;
+    const focus = schedule === 'balanced' ? (pendingMembers && waitingPlayers < 100 ? 'members' : waitingPlayers ? 'players' : 'references') : schedule;
     const sql = `SELECT key,payload FROM jobs WHERE done=0 ORDER BY
+      ${focus === 'members' ? "CASE WHEN json_extract(payload,'$.kind')='members' THEN -2 ELSE 0 END," : ''}
+      ${focus === 'players' ? "CASE WHEN json_extract(payload,'$.kind')='entity' AND json_extract(payload,'$.role')='player' THEN -2 ELSE 0 END," : ''}
       CASE WHEN json_extract(payload,'$.kind')='entity' AND json_extract(payload,'$.role')='team'
                 AND json_extract(payload,'$.id') IN (SELECT id FROM targets) THEN -1
            WHEN json_extract(payload,'$.kind')='entity' AND json_extract(payload,'$.role') IN ('team','country') THEN 0

@@ -1,6 +1,36 @@
 import type { Pool, PoolClient } from 'pg';
+import { createHash } from 'node:crypto';
 import type { Dataset } from './types.ts';
 import { normalize } from './normalize.ts';
+
+export function stable(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.keys(value as Record<string, unknown>).sort()
+    .map(key => `${JSON.stringify(key)}:${stable((value as Record<string, unknown>)[key])}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+
+export function canonicalDataset(d: Dataset): Dataset {
+  return {
+    ...d,
+    sources: [...d.sources].sort((a, b) => a.id.localeCompare(b.id)),
+    entities: [...d.entities].sort((a, b) => a.id.localeCompare(b.id))
+      .map(e => ({ ...e, aliases: [...e.aliases].sort((a, b) => a.localeCompare(b)) })),
+    careers: [...d.careers].sort((a, b) => a.id.localeCompare(b.id)),
+  };
+}
+
+export function datasetChecksum(d: Dataset): string {
+  const canonical = canonicalDataset(d);
+  return createHash('sha256').update(stable([canonical.version, canonical.origin ?? 'reviewed',
+    canonical.sources, canonical.entities, canonical.careers])).digest('hex');
+}
+
+export function nextReviewedVersion(version: string): string {
+  const match = /^(.*-v)(\d+)$/.exec(version);
+  if (!match) throw new Error('Reviewed version has no incrementable suffix');
+  return `${match[1]}${Number(match[2]) + 1}`;
+}
 
 export function validateDataset(input: unknown): asserts input is Dataset {
   if (!input || typeof input !== 'object') throw new Error('Invalid dataset');
@@ -46,6 +76,7 @@ export async function importDataset(pool: Pool, input: unknown): Promise<void> {
 }
 async function writeDataset(client: PoolClient, d: Dataset) {
   const candidate = d.origin === 'wikidata-candidates';
+  const checksum = datasetChecksum(d);
   for (const s of d.sources) await client.query('INSERT INTO football_source VALUES($1,$2,$3,$4) ON CONFLICT(id) ' + (candidate ? 'DO NOTHING' : 'DO UPDATE SET url=EXCLUDED.url,license=EXCLUDED.license,retrieved=EXCLUDED.retrieved'), [s.id, s.url, s.license, s.retrieved]);
   for (const e of d.entities) {
     // Identity cannot silently change kind in subsequent imports.
@@ -55,7 +86,8 @@ async function writeDataset(client: PoolClient, d: Dataset) {
     if (!candidate) await client.query('DELETE FROM football_alias WHERE entity_id=$1', [e.id]);
     for (const label of new Set([e.name, ...e.aliases])) await client.query('INSERT INTO football_alias(entity_id,label,search_key) VALUES($1,$2,$3) ON CONFLICT(entity_id,label) DO NOTHING', [e.id, label, normalize(label)]);
   }
-  for (const c of d.careers) await client.query('INSERT INTO football_career(id,player_id,team_id,from_year,to_year,appeared,verified,source_id,evidence_id,provenance) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(id) ' + (candidate ? 'DO NOTHING' : 'DO UPDATE SET player_id=EXCLUDED.player_id,team_id=EXCLUDED.team_id,from_year=EXCLUDED.from_year,to_year=EXCLUDED.to_year,appeared=EXCLUDED.appeared,verified=EXCLUDED.verified,source_id=EXCLUDED.source_id,evidence_id=EXCLUDED.evidence_id,provenance=EXCLUDED.provenance'), [c.id, c.playerId, c.teamId, c.fromYear ?? null, c.toYear ?? null, c.appeared, c.verified, c.sourceId, c.evidenceId, JSON.stringify(c.provenance ?? {})]);
+  for (const c of d.careers) await client.query('INSERT INTO football_career(id,player_id,team_id,from_year,to_year,appeared,verified,source_id,evidence_id,provenance) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(id) ' + (candidate ? 'DO NOTHING' : `DO UPDATE SET player_id=EXCLUDED.player_id,team_id=EXCLUDED.team_id,from_year=EXCLUDED.from_year,to_year=EXCLUDED.to_year,appeared=EXCLUDED.appeared,verified=EXCLUDED.verified,source_id=EXCLUDED.source_id,evidence_id=EXCLUDED.evidence_id,provenance=EXCLUDED.provenance WHERE NOT EXISTS (SELECT 1 FROM football_review r WHERE r.career_id=EXCLUDED.id)`), [c.id, c.playerId, c.teamId, c.fromYear ?? null, c.toYear ?? null, c.appeared, c.verified, c.sourceId, c.evidenceId, JSON.stringify(c.provenance ?? {})]);
   // Candidate imports may enrich the cache, but must not replace the reviewed game dataset version.
   if (!candidate) await client.query('INSERT INTO football_dataset VALUES(1,$1) ON CONFLICT(id) DO UPDATE SET version=EXCLUDED.version', [d.version]);
+  await client.query('INSERT INTO football_import_batch(checksum,version,origin,entity_count,career_count) VALUES($1,$2,$3,$4,$5) ON CONFLICT(checksum) DO NOTHING', [checksum, d.version, candidate ? 'wikidata-candidates' : 'reviewed', d.entities.length, d.careers.length]);
 }

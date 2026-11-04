@@ -21,8 +21,14 @@
     "test:http": "tsx --test tests/http.integration.ts",
     "socket": "node --env-file=.env --import tsx src/server/socketServer.ts",
     "socket:prod": "npm run preflight && npm run socket",
-    "data:fetch": "tsx scripts/wikidata-fetch.ts",
-    "data:check": "tsx scripts/quality-check.ts"
+    "data:fetch": "node --env-file-if-exists=.env --import tsx scripts/wikidata-fetch.ts",
+    "data:check": "tsx scripts/quality-check.ts",
+    "data:opportunities": "tsx scripts/football-opportunities.ts",
+    "data:evidence": "tsx scripts/football-evidence.ts",
+    "data:review:report": "node --env-file=.env --import tsx scripts/football-review-report.ts",
+    "data:review:export": "node --env-file=.env --import tsx scripts/football-review-export.ts",
+    "data:review:integrity": "node --env-file=.env --import tsx scripts/football-review-integrity.ts",
+    "data:review:pilot": "node --env-file=.env --import tsx scripts/football-review-pilot.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.15",

@@ -52,16 +52,20 @@ export async function processJob(store: Checkpoint, transport: Transport, job: J
     store.commit(job, next);
   }
 }
-export async function collect(store: Checkpoint, transport: Transport, maxTasks: number, signal?: AbortSignal) {
+export async function collect(store: Checkpoint, transport: Transport, maxTasks: number, signal?: AbortSignal, concurrency = 1, schedule: 'references' | 'members' | 'balanced' = 'references') {
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > 3) throw new Error('concurrency must be 1..3');
   const attempted = new Set<string>(); let failed = 0;
-  while (!signal?.aborted && attempted.size < maxTasks) {
-    const job = store.next(attempted);
-    if (!job) break;
-    attempted.add(jobKey(job));
-    try { await processJob(store, transport, job); }
-    catch (error) { if (signal?.aborted) break; store.failed(job, error); failed++; }
-    if (attempted.size % 25 === 0) console.log(JSON.stringify({ progress: store.stats(), attempted: attempted.size }));
-  }
+  const worker = async () => {
+    while (!signal?.aborted && attempted.size < maxTasks) {
+      const job = store.next(attempted, schedule);
+      if (!job) break;
+      attempted.add(jobKey(job));
+      try { await processJob(store, transport, job); }
+      catch (error) { if (signal?.aborted) break; store.failed(job, error); failed++; }
+      if (attempted.size % 25 === 0) console.log(JSON.stringify({ progress: store.stats(), attempted: attempted.size }));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, maxTasks) }, worker));
   return { attempted: attempted.size, runFailures: failed, ...store.stats() };
 }
 

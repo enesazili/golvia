@@ -9,7 +9,7 @@ export function failure(error: unknown) {
   console.error('Golvia request failed', { kind: error instanceof Error ? error.name : 'unknown' });
   return json({ error: 'Sunucuya şu anda erişilemiyor.' }, 503);
 }
-export async function body(request: Request): Promise<Record<string, unknown>> {
+export async function body(request: Request, limit = 2048): Promise<Record<string, unknown>> {
   // Next may normalize request.url to localhost; Host retains the browser's actual origin.
   const expectedOrigin = publicOrigin() ?? `${new URL(request.url).protocol}//${request.headers.get('host') ?? new URL(request.url).host}`;
   if (request.headers.get('origin') !== expectedOrigin) throw new SessionError(403, 'İstek kaynağı doğrulanamadı.');
@@ -18,7 +18,7 @@ export async function body(request: Request): Promise<Record<string, unknown>> {
   if (!reader) throw new SessionError(400, 'İstek boş.');
   let length = 0; const parts: Uint8Array[] = [];
   try {
-    while (true) { const { done, value } = await reader.read(); if (done) break; length += value.length; if (length > 2048) { await reader.cancel(); throw new SessionError(413, 'İstek çok büyük.'); } parts.push(value); }
+    while (true) { const { done, value } = await reader.read(); if (done) break; length += value.length; if (length > limit) { await reader.cancel(); throw new SessionError(413, 'İstek çok büyük.'); } parts.push(value); }
     const data: unknown = JSON.parse(Buffer.concat(parts).toString('utf8'));
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('invalid');
     return data as Record<string, unknown>;

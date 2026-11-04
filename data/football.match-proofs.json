@@ -1,0 +1,85 @@
+[
+  {
+    "playerId": "Q131234", "playerName": "Toni Kroos", "birthDate": "1990-01-04",
+    "teamId": "Q104761", "teamName": "Bayer 04 Leverkusen",
+    "candidateCareerId": "wd-statement-Q131234-0A43D10E-0F16-4524-BA7B-FD7E99C98906",
+    "url": "https://www.bayer04.de/en-us/news/bayer04/news-in-brief-seoane-gets-to-work-bailey-at-gold-cup",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "positive-match-count", "matches": 48 },
+    "reason": "Bayer 04 Leverkusen kulüp arşivi Toni Kroos'un A takımda 48 maça çıktığını açıkça belirtiyor."
+  },
+  {
+    "playerId": "Q167790", "playerName": "Edinson Cavani", "birthDate": "1987-02-14",
+    "teamId": "Q10333", "teamName": "Valencia CF",
+    "candidateCareerId": "wd-statement-Q167790-348ef373-4484-bd65-2c0b-1e6caa09f544",
+    "url": "https://www.laliga.com/en-GB/match/temporada-2022-2023-copa-del-rey-valencia-cf-athletic-club-5",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "completed-match-event", "event": "substituted-off", "match": "Valencia CF - Athletic Club, Copa del Rey 2022/23" },
+    "reason": "LaLiga'nın tamamlanan kupa maçında Edinson Cavani, Valencia adına 57. dakikada oyundan çıkıyor; 9. ve 12. dakikalarda da oyun olaylarına kayıtlı."
+  },
+  {
+    "playerId": "Q16174734", "playerName": "Lee Kang-in", "birthDate": "2001-02-19",
+    "teamId": "Q8701", "teamName": "Atlético Madrid",
+    "candidateCareerId": "wd-statement-Q16174734-b2b2302b-4876-fa45-1ca0-83bd0174e14c",
+    "url": "https://www.laliga.com/en-GB/player/kang-in",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "positive-match-count", "matches": 11 },
+    "reason": "LaLiga oyuncu profili doğum tarihini ve Atlético Madrid A takımındaki 2026/27 sezonu 11 maç, 698 dakika kaydını birlikte gösteriyor."
+  },
+  {
+    "playerId": "Q142794", "playerName": "Neymar", "birthDate": "1992-02-05",
+    "teamId": "Q73965", "teamName": "Al Hilal SFC",
+    "candidateCareerId": "wd-statement-Q142794-bb689183-4e09-0c74-a798-ce8dce1d066b",
+    "url": "https://www.the-afc.com/en/club/afc_champions_league/news/al_hilals_jesus_hails_perfect_performance_against_nassaji_.html",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "completed-match-event", "event": "goal", "match": "Nassaji Mazandaran - Al Hilal SFC, AFC Champions League 2023/24" },
+    "reason": "AFC maç yazısı, Neymar'ın Al Hilal SFC adına tamamlanan Şampiyonlar Ligi maçında gol attığını kaydediyor."
+  },
+  {
+    "playerId": "Q1185419", "playerName": "Bruma", "birthDate": "1994-10-24",
+    "teamId": "Q11938", "teamName": "PSV Eindhoven",
+    "candidateCareerId": "wd-statement-Q1185419-ae42dfdd-4142-aef2-2175-bb0d0d96f8eb",
+    "url": "https://www.psv.nl/media/artikel/officieel-bruma-vertrekt-bij-psv",
+    "identityUrl": "https://www.psv.nl/teams/speler/bruma-1",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "positive-match-count", "matches": 28 },
+    "reason": "PSV kulübü Bruma'nın tam adını Armindo Tué Na Bangna olarak, doğumunu 24 Ekim 1994 olarak ve 2021/22 Eredivisie'de 28 maç oynadığını kaydediyor."
+  },
+  {
+    "playerId": "Q1185419", "playerName": "Bruma", "birthDate": "1994-10-24",
+    "teamId": "Q131499", "teamName": "SL Benfica",
+    "candidateCareerId": "wd-statement-Q1185419-00aea8d7-4b48-4714-9a3c-def128afe794",
+    "url": "https://www.slbenfica.pt/pt-pt/agora/noticias/2025/02/15/futebol-cronica-jogo-santa-clara-benfica-22-jornada-liga-betclic",
+    "identityUrl": "https://www.psv.nl/teams/speler/bruma-1",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "completed-match-event", "event": "goal", "match": "Santa Clara - SL Benfica, Liga Portugal 2024/25" },
+    "reason": "Benfica'nın resmî maç yazısı Bruma'nın Santa Clara deplasmanında A takım adına galibiyet golünü attığını belirtiyor; PSV profili doğum kimliğini ayırıyor."
+  },
+  {
+    "playerId": "Q1185419", "playerName": "Bruma", "birthDate": "1994-10-24",
+    "teamId": "Q75684", "teamName": "SC Braga",
+    "candidateCareerId": "wd-statement-Q1185419-1f86fae9-47dd-05e9-a7a1-9a6e8ee72943",
+    "url": "https://scbraga.pt/wp-content/uploads/2025/10/EN-RC-Braga-SAD-24-25.pdf",
+    "identityUrl": "https://www.psv.nl/teams/speler/bruma-1",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "completed-match-event", "event": "goal", "match": "Leixões - SC Braga, Taça de Portugal 2024/25" },
+    "reason": "SC Braga'nın 2024/25 resmî faaliyet raporu Leixões ile kupa maçında Bruma'nın iki gol attığını kaydediyor; PSV profili doğum kimliğini ayırıyor."
+  },
+  {
+    "playerId": "Q1185419", "playerName": "Bruma", "birthDate": "1994-10-24",
+    "teamId": "Q75729", "teamName": "Sporting CP",
+    "candidateCareerId": "wd-statement-Q1185419-DD6D6B44-FFE3-4242-80DB-66331AEA7162",
+    "url": "https://www.sporting.pt/pt/noticias/futebol/2013-02-11/sporting-0-maritimo-1-0",
+    "identityUrl": "https://www.psv.nl/teams/speler/bruma-1",
+    "matchId": "Sporting-Marítimo-2013-02-10", "matchDate": "2013-02-10", "competition": "Primeira Liga",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "completed-match-event", "event": "substituted-off", "match": "Sporting CP - Marítimo, Primeira Liga 2012/13" },
+    "sourceNote": "Sporting'in resmî maç yazısı 10 Şubat 2013 tarihli Sporting-Marítimo karşılaşmasını ve Bruma'nın oyundan çıkışını kaydediyor.",
+    "identityNote": "PSV'nin resmî oyuncu profili Bruma'nın tam adını ve 24 Ekim 1994 doğum tarihini göstererek kimliği bağımsız biçimde doğruluyor.",
+    "reason": "Sporting'in resmî maç yazısı Bruma'nın Primeira Liga'da tamamlanan A takım maçında oyundan çıktığını; PSV profili doğum kimliğini doğruluyor."
+  },
+  {
+    "playerId": "Q1185419", "playerName": "Bruma", "birthDate": "1994-10-24",
+    "teamId": "Q702455", "teamName": "RB Leipzig",
+    "candidateCareerId": "wd-statement-Q1185419-a508b8e9-45ee-17d2-8e26-bfa6352fb5d0",
+    "url": "https://www.bundesliga.com/en/bundesliga/matchday/2018-2019/22/vfb-stuttgart-vs-rb-leipzig/liveticker",
+    "identityUrl": "https://www.psv.nl/teams/speler/bruma-1",
+    "matchId": "VfB-Stuttgart-RB-Leipzig-2019-02-16", "matchDate": "2019-02-16", "competition": "Bundesliga",
+    "checkedAt": "2026-11-04", "evidence": { "kind": "completed-match-event", "event": "substituted-on", "match": "VfB Stuttgart - RB Leipzig, Bundesliga 2018/19" },
+    "sourceNote": "Bundesliga'nın resmî maç kaydı 16 Şubat 2019 tarihli VfB Stuttgart-RB Leipzig maçında Bruma'nın oyuna girdiğini gösteriyor.",
+    "identityNote": "PSV'nin resmî oyuncu profili Bruma'nın tam adını ve 24 Ekim 1994 doğum tarihini göstererek kimliği bağımsız biçimde doğruluyor.",
+    "reason": "Bundesliga'nın resmî maç kaydı Bruma'nın tamamlanan A takım maçında oyuna girdiğini; PSV profili doğum kimliğini doğruluyor."
+  }
+]

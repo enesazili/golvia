@@ -7,7 +7,7 @@ import { WikidataClient } from './wikidata/client.ts';
 import { transform } from './wikidata/transform.ts';
 import { atomicJson, preserveLegacy } from './wikidata/files.ts';
 import { validateDataset } from '../src/server/football/importer.ts';
-import { prepareTop100, reuseCachedJobs, validateTop100Catalog } from './wikidata/top100.ts';
+import { prepareTop100, reuseCachedJobs, top100Progress, validateTop100Catalog } from './wikidata/top100.ts';
 
 export async function main(args = process.argv.slice(2)) {
   const flag = (name: string, fallback: string) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] ?? fallback : fallback; };
@@ -25,6 +25,8 @@ export async function main(args = process.argv.slice(2)) {
   }
   const maxTasks = Number(flag('max-tasks', '50'));
   if (!Number.isSafeInteger(maxTasks) || maxTasks < 0 || maxTasks > 10000) throw new Error('max-tasks must be 0..10000');
+  const concurrency = Number(flag('concurrency', '1'));
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > 3) throw new Error('concurrency must be 1..3');
   const offline = args.includes('--offline');
   const abort = new AbortController();
   const stop = () => abort.abort(new Error('Collection interrupted'));
@@ -55,13 +57,16 @@ export async function main(args = process.argv.slice(2)) {
       const jobs = catalogJobs(catalog);
       store.transaction(() => { for (const job of jobs) store.enqueue(job); });
     }
-    const run = client ? await collect(store, client, maxTasks, abort.signal) : { attempted: 0, runFailures: 0, ...store.stats() };
+    const run = client ? await collect(store, client, maxTasks, abort.signal, concurrency, top100 ? 'balanced' : 'references') : { attempted: 0, runFailures: 0, ...store.stats() };
     const output = transform(store.records(), seed);
     validateDataset(output);
-    const collection = { checkpointVersion: 1, ...run, reusedCachedJobs: reuse, scope: top100 ? 'Top 100 A-club members plus their player P54 team references; no general discovery' : 'Configured catalog targets plus any pending jobs already in the checkpoint; not all football history', complete: run.pending === 0 && !abort.signal.aborted, interrupted: abort.signal.aborted, liveRequestsEnabled: !offline };
+    let progress: ReturnType<typeof top100Progress> | undefined;
+    if (top100) { validateTop100Catalog(catalog); progress = top100Progress(store, catalog); }
+    const collection = { checkpointVersion: 1, ...run, reusedCachedJobs: reuse, startedClubs: progress?.startedClubs, completedClubs: progress?.completedClubs, pendingClubs: progress?.pendingClubs, scope: top100 ? 'Top 100 A-club members plus their player P54 team references; no general discovery' : 'Configured catalog targets plus any pending jobs already in the checkpoint; not all football history', complete: run.pending === 0 && !abort.signal.aborted, interrupted: abort.signal.aborted, liveRequestsEnabled: !offline };
     // One atomic export includes data, quarantine, provenance and progress summary.
     await atomicJson(out, { ...output, collection, legacyReview: store.legacy() });
     console.log(JSON.stringify({ output: out, ...output.counts, ...collection }, null, 2));
+    if (args.includes('--progress') && progress) console.log(JSON.stringify(progress.clubs, null, 2));
     if (run.failed) process.exitCode = 1;
     if (abort.signal.aborted) process.exitCode = 130;
   } finally {

@@ -13,7 +13,7 @@ import { classifyTeam, names, transform, type WdEntity, type Statement } from '.
 import { atomicJson, preserveLegacy } from '../scripts/wikidata/files.ts';
 import { validateDataset } from '../src/server/football/importer.ts';
 import { normalize } from '../src/server/football/normalize.ts';
-import { prepareTop100, reuseCachedJobs, validateTop100Catalog } from '../scripts/wikidata/top100.ts';
+import { prepareTop100, reuseCachedJobs, top100Progress, validateTop100Catalog } from '../scripts/wikidata/top100.ts';
 import type { Dataset } from '../src/server/football/types.ts';
 const value = (id: string) => ({ mainsnak: { datavalue: { value: { id } } } });
 const rawPlayer: WdEntity = { id: 'Q1', lastrevid: 11, labels: { tr: { value: 'İlhan Şükür' }, en: { value: 'Ilhan Sukur' } }, aliases: { tr: [{ value: 'Kral' }] }, claims: { P31: [value('Q5')], P54: [{ id: 'Q1$first', ...value('Q2') }, { id: 'Q1$second', ...value('Q2'), qualifiers: { P580: [{ datavalue: { value: { time: '+2005-00-00T00:00:00Z', precision: 9 } } }] } }], P1449: [{ mainsnak: { datavalue: { value: { text: 'The King', language: 'en' } } } }] } };
@@ -113,6 +113,10 @@ test('Top 100 checkpoint reuses scoped pages and cached P54 teams without carryi
     assert.equal(fresh.entity('Q150')?.id, 'Q150');
     assert.equal(fresh.pending().some(job => job.kind === 'discover' || (job.kind === 'members' && job.id === 'Q150')), false);
     assert.equal(fresh.pending().filter(job => job.kind === 'members').length, 99);
+    const progress = top100Progress(fresh, catalog);
+    assert.equal(progress.startedClubs, 1);
+    assert.equal(progress.completedClubs, 1);
+    assert.equal(progress.pendingClubs, 99);
     const total = fresh.stats().total;
     fresh.close(); fresh = new Checkpoint(newPath);
     prepareTop100(fresh, catalog, oldPath);
@@ -129,6 +133,48 @@ test('failed or malformed queries remain pending and succeed on a later run', as
     await collect(store, { json: async () => ({}) }, 10); assert.equal(store.stats().completed, 0);
     await collect(store, { json: async () => ({ results: { bindings: [] } }) }, 10); assert.equal(store.stats().completed, 1);
   } finally { store.close(); }
+});
+
+test('bounded workers claim distinct jobs and checkpoint each completion', async () => {
+  const store = new Checkpoint(':memory:');
+  let active = 0, peak = 0, requests = 0;
+  try {
+    for (let id = 1; id <= 5; id++) store.enqueue({ kind: 'entity', id: `Q${id}`, role: 'team' });
+    const transport = { json: async (url: string) => {
+      active++; peak = Math.max(peak, active); requests++;
+      await new Promise(resolve => setTimeout(resolve, 5));
+      active--;
+      const id = /\/(Q\d+)\.json$/.exec(url)![1];
+      return { entities: { [id]: { ...rawTeam, id } } };
+    } };
+    const result = await collect(store, transport, 5, undefined, 2);
+    assert.equal(result.completed, 5); assert.equal(result.pending, 0);
+    assert.equal(requests, 5); assert.equal(peak, 2);
+    await collect(store, transport, 5, undefined, 2);
+    assert.equal(requests, 5);
+    await assert.rejects(collect(store, transport, 1, undefined, 5), /concurrency/);
+  } finally { store.close(); }
+});
+
+test('Top 100 scheduling starts member discovery before reference teams', async () => {
+  const store = new Checkpoint(':memory:');
+  try {
+    store.enqueue({ kind: 'entity', id: 'Q2', role: 'team' });
+    store.enqueue({ kind: 'members', id: 'Q3', after: '' });
+    assert.deepEqual(store.next(new Set()), { kind: 'entity', id: 'Q2', role: 'team' });
+    assert.deepEqual(store.next(new Set(), 'members'), { kind: 'members', id: 'Q3', after: '' });
+    assert.deepEqual(store.next(new Set(), 'balanced'), { kind: 'members', id: 'Q3', after: '' });
+    for (let id = 4; id <= 103; id++) store.enqueue({ kind: 'entity', id: `Q${id}`, role: 'player' });
+    assert.deepEqual(store.next(new Set(), 'balanced'), { kind: 'entity', id: 'Q4', role: 'player' });
+  } finally { store.close(); }
+});
+
+test('concurrent Wikidata requests reserve separate rate-limit slots', async () => {
+  const delays: number[] = [];
+  const client = new WikidataClient({ userAgent: 'GolviaTest/1.0 (https://test.invalid/contact)', interval: 2500,
+    now: () => 1000, sleep: async ms => { delays.push(ms); }, fetcher: async () => Response.json({ ok: true }) });
+  await Promise.all([client.json('https://test.invalid/1'), client.json('https://test.invalid/2')]);
+  assert.deepEqual(delays, [0, 2500]);
 });
 test('checkpoint write failure rolls back entity and completion marker together', () => {
   const store = new Checkpoint(':memory:');

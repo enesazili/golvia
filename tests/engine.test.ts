@@ -29,11 +29,16 @@ test('reviewed fallback searches only relevant playable records and scores a rea
     const repo = new FootballRepository(pool), real = await repo.catalog();
     assert.equal(connects(real, 'Q11571', 'Q8682', 'Q482764'), true);
     assert.equal(connects(real, 'Q124086', 'Q81888', 'Q495299'), true);
+    assert.equal(connects(real, 'Q128912', 'Q15789', 'Q11945'), true);
+    assert.equal(connects(real, 'Q128912', 'Q15789', 'Q8682'), false);
     assert.equal(real.playerIds.has('Q1000050'), false);
     assert.deepEqual(await repo.search('player', ''), []);
     assert.deepEqual(await repo.search('player', 'i'), []);
     assert.deepEqual(await repo.search('player', 'ibra'), []); // Zlatan has no reviewed career in this snapshot.
     assert.equal((await repo.search('player', 'Neymar Jr'))[0]?.id, 'Q142794');
+    assert.equal((await repo.search('player', 'daley blind'))[0]?.id, 'Q128912');
+    assert.equal((await repo.search('selection', 'girona'))[0]?.id, 'Q11945');
+    assert.equal((await repo.search('selection', 'schalke')).length, 0);
     assert.equal((await repo.search('selection', 'barça'))[0]?.id, 'Q7156');
     assert.equal((await repo.search('selection', 'münih'))[0]?.id, 'Q15789');
     assert.equal((await repo.search('selection', 'real'))[0]?.id, 'Q8682');

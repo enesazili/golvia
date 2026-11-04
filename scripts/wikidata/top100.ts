@@ -90,3 +90,20 @@ export function reuseCachedJobs(store: Checkpoint, paths: string[]) {
     }
   } finally { for (const db of sources) db.close(); }
 }
+
+export function top100Progress(store: Checkpoint, catalog: Top100Catalog) {
+  const rows = new Map(catalog.clubs.map(club => [club.id, { id: club.id, rank: club.rank, name: club.name, pages: 0, completedPages: 0, failures: 0 }]));
+  for (const row of store.db.prepare("SELECT payload,done,failures FROM jobs WHERE json_extract(payload,'$.kind')='members'").iterate()) {
+    const job = JSON.parse(String(row.payload)) as Job;
+    if (job.kind !== 'members') continue;
+    const club = rows.get(job.id);
+    if (!club) throw new Error(`Out-of-scope member job: ${job.id}`);
+    club.pages++;
+    club.completedPages += Number(row.done);
+    club.failures += Number(row.failures);
+  }
+  const clubs = [...rows.values()].sort((a, b) => a.rank - b.rank);
+  return { startedClubs: clubs.filter(c => c.completedPages > 0).length,
+    completedClubs: clubs.filter(c => c.pages > 0 && c.pages === c.completedPages).length,
+    pendingClubs: clubs.filter(c => c.pages === 0 || c.pages !== c.completedPages).length, clubs };
+}

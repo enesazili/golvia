@@ -158,3 +158,41 @@ Detaylı kanıtlar ve güncel sınırlamalar: PROJECT_CONTEXT.md. Veri kapsamı:
 - [ ] Süreç dışı/paylaşımlı rate limit ve maç durumu için kalıcı atomik sahiplik; ancak sonrasında çoklu replica.
 - [ ] İki gerçek cihaz, uzun kopma, yük ve canlı yedek geri yükleme provası.
 - [ ] `style-src` nonce politikasının yeni istemci kütüphaneleriyle uyumunun sürekli doğrulanması.
+
+## Phase 7 — futbol verisi — 4 Kasım 2026
+
+- [x] Mevcut adaylardan bağımsız oynama kanıtıyla incelenmiş havuzu 50 oyuncu, 50 kulüp, 178 kariyere ve 203 A-katalog oynanabilir çifte çıkar.
+- [x] Top100 benzersizlik/önbellek sınıf taraması, yerel fırsat sıralaması, staging çift importu, yeni arama/eşleşme testleri.
+- [x] `data:check`, 49/49 test, 10/10 DB testi, lint, typecheck, build ve staging yedek/izole geri yükleme.
+- [ ] Kalan 51 A kulüp ID'sini bağımsız teyit et; hepsine kanıtlı ortak oyuncu sağla. En az 150 oyuncu ve 300 kariyer hedefleri henüz karşılanmadı.
+- [ ] Canlı aktarım öncesi canlı yedek + izole geri yükleme denemesi, veri sürümü/kaynak denetimi ve bakım penceresi; kullanıcı onayıyla kontrollü import. Maç oturumları süreç belleğinde, restart aktif maçları kapatır.
+
+## Phase 8 — A Top 100 veri altyapısı — 4 Kasım 2026
+
+- [x] Ayrı A checkpoint, eski veri/önbellek yeniden kullanımı, 185 canlı iş denemesi, 1.019 aday futbolcu ve 7.003 P54 bağ adayı; 0 başarısız iş.
+- [x] Dengeli, 1–3 çalışanlı hız sınırlı toplama; kulüp sayfa ilerlemesi; staging aday importu, checksum geçmişi ve oyun için kanıtlı/A kulüp filtresi.
+- [ ] Kalan 2.004 işi kontrollü partilerle tamamla; 100 kulübün tüm sayfaları ve eksik takım/ülke referanslarını çöz. Q286191 kimliğini ayrıca bağımsız teyit et.
+- [ ] Güvenilir maç/oynama kaynaklarından yapılandırılmış otomatik kanıt alma ve insan inceleme kuyruğu; 1.823 adayı kanıtsız tut. Üretim ölçeğinde sorgu/yük testi.
+- [ ] Canlıya aktarım ancak canlı yedek/geri yükleme ve kullanıcı onayı sonrasında; bu fazda deploy/push yok.
+- [x] 52/52 test, 10/10 DB testi, lint, typecheck, build, aday `data:check` ve staging yedek/geri yükleme.
+## Phase 9 — maç kanıtı pilotu — 4 Kasım 2026
+
+- [x] Yedi öncelikli P54 adayını resmî A takım maç/sayı kaynağıyla tek tek denetle; kaynak, kimlik, tarih ve gerekçeyi yapılandırılmış kaydet.
+- [x] Ağsız/idempotent kanıt merge, katı kimlik/A takım/pozitif maç kapısı ve Top100-a fırsat sıralaması; eski 178 bağı koru.
+- [x] Staging yedek/izole geri yükleme ve çift import; 185 kanıtlı bağ, 51 oynanabilir oyuncu, 212 A kulüp çifti.
+- [x] 57/57 uygulama testi, 10/10 PostgreSQL testi, lint, typecheck, production build ve iki veri kalite kontrolü.
+- [ ] Kalan 1.816 import edilebilir aday için izinli/ruhsatlı maç verisi kaynağı veya insan incelemesi; kaynağın içerik denetimini otomatikleştirme ancak kullanım hakkı doğrulanınca.
+- [ ] Canlı veri aktarımı için canlı yedek, bağımsız geri yükleme ve açık kullanıcı onayı; bu turda canlı import/push/deploy yok.
+
+## Phase 9.1 — veri tutarlılığı ve güvenli inceleme — 4 Kasım 2026
+
+- [x] Staging yedeği; DB/JSON tek kanonik akış, deterministik export, checksum, sürüm artırımı ve çakışma reddi.
+- [x] DB-only iki Bruma onayını kanıt defterine taşı; reviewed v7 ile DB/JSON eşitliğini 187 bağ/219 çiftte sağla.
+- [x] RB Leipzig'i yalnız kanıtlı onayla `senior` yap; onaylı ama oynanabilir olmayan bağ bütünlük kontrolünü ekle.
+- [x] Dört eksik kimlikli eski kanıtı silmeden yeniden incelemeye işaretle; yeni onaylarda bağımsız kimlik ve insan notu zorunlu kıl.
+- [x] `/inceleme` ve review API'yi production'da kesin kapat; Host güvenini kaldır, bearer/rate-limit/8 KB gövde/audit aktör+işlem kimliği ekle.
+- [x] 25 adaylık pilotu `football.review-pilot.json` + `football.match-proofs.json` kanonik girdilerine bağla; `.local` ve gömülü kanıt bağımlılığını kaldır.
+- [x] 70/70 uygulama testi, 11/11 PostgreSQL testi, lint, typecheck ve production build.
+- [ ] Dört bekleyen eski kayıt için bağımsız kimlik kanıtıyla insan yeniden incelemesi.
+- [ ] İnceleme erişimini paylaşılan tek token yerine hesapla/çok faktörle sınırlandırma ve dağıtık rate limit.
+- [ ] Kalan 1.816 aday için izinli/ruhsatlı maç verisi veya insan incelemesi; canlı yedek/geri yükleme ve onaylı dağıtım.

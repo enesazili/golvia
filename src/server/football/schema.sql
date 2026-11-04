@@ -29,7 +29,32 @@ CREATE INDEX IF NOT EXISTS football_career_player_team ON football_career(player
 CREATE INDEX IF NOT EXISTS football_career_playable_team_player ON football_career(team_id,player_id) WHERE verified AND appeared;
 ALTER TABLE football_career ADD COLUMN IF NOT EXISTS provenance jsonb NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS football_dataset (id integer PRIMARY KEY CHECK(id=1), version text NOT NULL);
+CREATE TABLE IF NOT EXISTS football_import_batch (
+  checksum text PRIMARY KEY, version text NOT NULL, origin text NOT NULL CHECK (origin IN ('reviewed','wikidata-candidates')),
+  entity_count integer NOT NULL CHECK(entity_count >= 0), career_count integer NOT NULL CHECK(career_count >= 0),
+  imported_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE OR REPLACE VIEW football_link AS
  SELECT DISTINCT c.player_id, CASE WHEN t.kind='national_team' THEN t.country_id ELSE t.id END AS selection_id
  FROM football_career c JOIN football_entity t ON t.id=c.team_id
  WHERE c.verified AND c.appeared AND t.level='senior' AND t.kind IN ('club','national_team');
+
+CREATE TABLE IF NOT EXISTS football_review (
+  career_id text PRIMARY KEY REFERENCES football_career(id),
+  status text NOT NULL CHECK (status IN ('pending','approved','rejected','hold')),
+  reason text NOT NULL DEFAULT '', evidence jsonb,
+  revision integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS football_review_status ON football_review(status,updated_at);
+CREATE TABLE IF NOT EXISTS football_review_event (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  career_id text NOT NULL REFERENCES football_career(id),
+  status text NOT NULL CHECK (status IN ('pending','approved','rejected','hold')),
+  reason text NOT NULL, evidence jsonb,
+  recorded_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE football_review_event ADD COLUMN IF NOT EXISTS action text NOT NULL DEFAULT 'decision';
+ALTER TABLE football_review_event ADD COLUMN IF NOT EXISTS actor text NOT NULL DEFAULT 'unknown';
+ALTER TABLE football_review_event ADD COLUMN IF NOT EXISTS request_id text;
+CREATE INDEX IF NOT EXISTS football_review_event_career ON football_review_event(career_id,id DESC);

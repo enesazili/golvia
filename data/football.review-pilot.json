@@ -1,0 +1,282 @@
+{
+  "version": "review-pilot-2026-11-04-v1",
+  "scope": "Local staging Top 100 A clubs",
+  "note": "Kanonik pilot girdisi. Kararlar data/football.match-proofs.json kan?t kayd?ndan t?retilir; elle sabit kodlanm?? kan?t yoktur.",
+  "items": [
+    {
+      "careerId": "wd-statement-Q1388915-B30A4918-A137-4315-A4AB-0EB9B427F77E",
+      "playerId": "Q1388915",
+      "player": "Pascal Nouma",
+      "birthDate": "1972-01-06",
+      "clubId": "Q483020",
+      "club": "Paris Saint-Germain",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1388915&oldid=2539550285",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-Q1185419-DD6D6B44-FFE3-4242-80DB-66331AEA7162",
+      "playerId": "Q1185419",
+      "player": "Bruma",
+      "birthDate": "1994-10-24",
+      "clubId": "Q75729",
+      "club": "Sporting CP",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1185419&oldid=2552071768",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-Q1185419-a508b8e9-45ee-17d2-8e26-bfa6352fb5d0",
+      "playerId": "Q1185419",
+      "player": "Bruma",
+      "birthDate": "1994-10-24",
+      "clubId": "Q702455",
+      "club": "RB Leipzig",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1185419&oldid=2552071768",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-q1388915-AF2F82CA-273C-4C6B-992F-C834BAC41870",
+      "playerId": "Q1388915",
+      "player": "Pascal Nouma",
+      "birthDate": "1972-01-06",
+      "clubId": "Q191843",
+      "club": "RC Lens",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1388915&oldid=2539550285",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-Q1185419-0BE52231-2CEF-4FC9-AB6E-D11F88996F51",
+      "playerId": "Q1185419",
+      "player": "Bruma",
+      "birthDate": "1994-10-24",
+      "clubId": "Q10315",
+      "club": "Real Sociedad",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1185419&oldid=2552071768",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-q1388915-FA662D79-B32F-4BEA-8B67-078368C65463",
+      "playerId": "Q1388915",
+      "player": "Pascal Nouma",
+      "birthDate": "1972-01-06",
+      "clubId": "Q132885",
+      "club": "Olympique de Marseille",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1388915&oldid=2539550285",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-q1388915-A2B01F62-436D-4BCE-8FCE-853EDA078DE9",
+      "playerId": "Q1388915",
+      "player": "Pascal Nouma",
+      "birthDate": "1972-01-06",
+      "clubId": "Q19516",
+      "club": "Lille OSC",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1388915&oldid=2539550285",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-Q1185419-73B47BE2-B026-40B0-81BA-2083EA068164",
+      "playerId": "Q1185419",
+      "player": "Bruma",
+      "birthDate": "1994-10-24",
+      "clubId": "Q495299",
+      "club": "Galatasaray",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1185419&oldid=2552071768",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-Q1185419-48a5c415-4ea9-f0ea-c35d-e6c101f62849",
+      "playerId": "Q1185419",
+      "player": "Bruma",
+      "birthDate": "1994-10-24",
+      "clubId": "Q6601875",
+      "club": "Fenerbahçe",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1185419&oldid=2552071768",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-q1388915-022E2156-4ECE-4365-8247-7E86A33FAB58",
+      "playerId": "Q1388915",
+      "player": "Pascal Nouma",
+      "birthDate": "1972-01-06",
+      "clubId": "Q126334",
+      "club": "RC Strasbourg",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1388915&oldid=2539550285",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 4
+    },
+    {
+      "careerId": "wd-statement-q1184161-C80CBD8E-0A78-45CB-B67D-971BB9B79BB5",
+      "playerId": "Q1184161",
+      "player": "Delfí Geli",
+      "birthDate": "1969-04-22",
+      "clubId": "Q7156",
+      "club": "Barcelona",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1184161&oldid=2555405208",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1646840-12164F79-49AA-43EE-A0CA-0482AABA4F32",
+      "playerId": "Q1646840",
+      "player": "Xavier Gravelaine",
+      "birthDate": "1968-10-05",
+      "clubId": "Q483020",
+      "club": "Paris Saint-Germain",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1646840&oldid=2533379826",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-q1079859-2A6E6312-7052-4899-8837-0AFF319A5962",
+      "playerId": "Q1079859",
+      "player": "Christian Giménez",
+      "birthDate": "1981-02-01",
+      "clubId": "Q8682",
+      "club": "Real Madrid",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1079859&oldid=2546307665",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-q1382753-9DA575E7-0C5C-449A-8CB5-D04010BA47D2",
+      "playerId": "Q1382753",
+      "player": "Jovan Kirovski",
+      "birthDate": "1976-03-18",
+      "clubId": "Q41420",
+      "club": "Borussia Dortmund",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1382753&oldid=2509623348",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1042676-16122C19-C9F4-4D94-A897-EE15ED215F70",
+      "playerId": "Q1042676",
+      "player": "Carlos Alhinho",
+      "birthDate": "1949-01-10",
+      "clubId": "Q75729",
+      "club": "Sporting CP",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1042676&oldid=2532663966",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1155889-64208e4e-4acd-c8a5-7664-8ff1e9a4e963",
+      "playerId": "Q1155889",
+      "player": "André Carrillo",
+      "birthDate": "1991-06-14",
+      "clubId": "Q75729",
+      "club": "Sporting CP",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1155889&oldid=2546447782",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1347269-D90826DE-CFF6-4CBD-970C-CF1629C92981",
+      "playerId": "Q1347269",
+      "player": "İslam Süleymani",
+      "birthDate": "1988-06-18",
+      "clubId": "Q75729",
+      "club": "Sporting CP",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1347269&oldid=2546379849",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-q1382753-BD7B7E11-1B6E-4B49-91B0-6AF9B4F0CED9",
+      "playerId": "Q1382753",
+      "player": "Jovan Kirovski",
+      "birthDate": "1976-03-18",
+      "clubId": "Q75729",
+      "club": "Sporting CP",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1382753&oldid=2509623348",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-q1184161-A741991F-EC00-47E0-8474-9358681908AB",
+      "playerId": "Q1184161",
+      "player": "Delfí Geli",
+      "birthDate": "1969-04-22",
+      "clubId": "Q8701",
+      "club": "Atlético Madrid",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1184161&oldid=2555405208",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-q1382753-7129C95D-6778-4A02-893A-D8044F8710AE",
+      "playerId": "Q1382753",
+      "player": "Jovan Kirovski",
+      "birthDate": "1976-03-18",
+      "clubId": "Q18656",
+      "club": "Manchester United FC",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1382753&oldid=2509623348",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1042676-2B2CBEC1-3C5B-473E-8591-D5C393C43886",
+      "playerId": "Q1042676",
+      "player": "Carlos Alhinho",
+      "birthDate": "1949-01-10",
+      "clubId": "Q131499",
+      "club": "SL Benfica",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1042676&oldid=2532663966",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1155889-6FB4C780-7CE2-4208-9352-ECF7CD4F5C75",
+      "playerId": "Q1155889",
+      "player": "André Carrillo",
+      "birthDate": "1991-06-14",
+      "clubId": "Q131499",
+      "club": "SL Benfica",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1155889&oldid=2546447782",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1042676-03D4B5ED-7697-4895-9112-82446705BF3B",
+      "playerId": "Q1042676",
+      "player": "Carlos Alhinho",
+      "birthDate": "1949-01-10",
+      "clubId": "Q128446",
+      "club": "FC Porto",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1042676&oldid=2532663966",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-Q1042676-82CC7144-FF25-4DCA-BAEA-D2961F4B0822",
+      "playerId": "Q1042676",
+      "player": "Carlos Alhinho",
+      "birthDate": "1949-01-10",
+      "clubId": "Q8723",
+      "club": "Real Betis",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1042676&oldid=2532663966",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    },
+    {
+      "careerId": "wd-statement-q1079859-8B9B913F-01F1-4361-9FB5-6C82D69C4F73",
+      "playerId": "Q1079859",
+      "player": "Christian Giménez",
+      "birthDate": "1981-02-01",
+      "clubId": "Q845859",
+      "club": "CDSC Cruz Azul",
+      "candidateSource": "https://www.wikidata.org/w/index.php?title=Q1079859&oldid=2546307665",
+      "newPairsAtScreening": 0,
+      "possiblePairsAtScreening": 3
+    }
+  ]
+}
