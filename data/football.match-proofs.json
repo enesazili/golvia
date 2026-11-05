@@ -81,5 +81,49 @@
     "sourceNote": "Bundesliga'nın resmî maç kaydı 16 Şubat 2019 tarihli VfB Stuttgart-RB Leipzig maçında Bruma'nın oyuna girdiğini gösteriyor.",
     "identityNote": "PSV'nin resmî oyuncu profili Bruma'nın tam adını ve 24 Ekim 1994 doğum tarihini göstererek kimliği bağımsız biçimde doğruluyor.",
     "reason": "Bundesliga'nın resmî maç kaydı Bruma'nın tamamlanan A takım maçında oyuna girdiğini; PSV profili doğum kimliğini doğruluyor."
-  }
+  },
+  {
+  "playerId": "Q13784739",
+  "playerName": "Alexander Sørloth",
+  "birthDate": "1995-12-05",
+  "teamId": "Q8701",
+  "teamName": "Atlético Madrid",
+  "candidateCareerId": "wd-statement-Q13784739-134022e2-474b-59bd-de2d-a7b198d84e2f",
+  "url": "https://www.laliga.com/en-GB/match/temporada-2024-2025-laliga-ea-sports-atletico-de-madrid-real-sociedad-35",
+  "identityUrl": "https://www.uefa.com/uefachampionsleague/clubs/players/250061361--alexander-sorloth/",
+  "matchId": "ATM-RSO-2025-05-10",
+  "matchDate": "2025-05-10",
+  "competition": "LaLiga",
+  "checkedAt": "2026-11-04",
+  "evidence": {
+    "kind": "completed-match-event",
+    "event": "goal",
+    "match": "Atlético Madrid - Real Sociedad, LaLiga 2024/25"
+  },
+  "sourceNote": "LaLiga resmî maç kaydı Sørloth'un Atlético Madrid adına 7, 10, 11 ve 30. dakikalarda dört gol attığını gösteriyor.",
+  "identityNote": "UEFA resmî oyuncu profili Sørloth'un adını, Norveç milliyetini ve 5 Aralık 1995 doğum tarihini doğruluyor.",
+  "reason": "Tamamlanan resmî A takım lig maçında dört gol atmış; oyuncu kimliği bağımsız UEFA profiliyle eşleşiyor."
+},
+{
+  "playerId": "Q13784739",
+  "playerName": "Alexander Sørloth",
+  "birthDate": "1995-12-05",
+  "teamId": "Q12297",
+  "teamName": "Villarreal CF",
+  "candidateCareerId": "wd-statement-Q13784739-eec2ec89-440d-995e-0c4e-9e0ea2a4bc14",
+  "url": "https://www.laliga.com/en-GB/match/temporada-2023-2024-laliga-easports-villarreal-cf-real-madrid-37",
+  "identityUrl": "https://www.uefa.com/uefachampionsleague/clubs/players/250061361--alexander-sorloth/",
+  "matchId": "VIL-RMA-2024-05-19",
+  "matchDate": "2024-05-19",
+  "competition": "LaLiga",
+  "checkedAt": "2026-11-04",
+  "evidence": {
+    "kind": "completed-match-event",
+    "event": "goal",
+    "match": "Villarreal CF - Real Madrid, LaLiga 2023/24"
+  },
+  "sourceNote": "LaLiga resmî maç kaydı Sørloth'un Villarreal adına 39, 48, 52 ve 56. dakikalarda dört gol attığını gösteriyor.",
+  "identityNote": "UEFA oyuncu profili Sørloth'un kimlik ve doğum bilgilerini bağımsız olarak doğruluyor.",
+  "reason": "Tamamlanan resmî A takım lig maçında dört gol atmış; kimlik bilgileri UEFA profiliyle eşleşiyor."
+}
 ]
