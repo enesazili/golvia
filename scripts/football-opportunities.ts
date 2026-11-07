@@ -9,7 +9,6 @@ function load(path: string): Dataset {
   validateDataset(value);
   return value;
 }
-
 const reviewed = load('data/football.reviewed.json');
 const candidates = ['football-top100-a.json', 'football-top100.json', 'football-curated.json', 'football-wikidata.json'].map(file => load(`data/${file}`));
 const catalog: unknown = JSON.parse(readFileSync('data/club-catalog.top100.json', 'utf8'));
