@@ -11,7 +11,7 @@ try {
     try {
       await client.query('BEGIN'); await client.query('SELECT pg_advisory_xact_lock(3212026)');
       const files = command === 'migrate'
-        ? ['../src/server/football/schema.sql', '../src/server/match/schema.sql']
+        ? ['../src/server/football/schema.sql', '../src/server/match/schema.sql', '../src/server/competitive/schema.sql']
         : ['../src/server/auth/schema.sql'];
       for (const file of files) await client.query(await readFile(new URL(file, import.meta.url), 'utf8'));
       await client.query('COMMIT');

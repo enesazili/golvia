@@ -80,7 +80,10 @@ test('a disconnected player resumes the same match within grace period', { timeo
 test('cancel during asynchronous match creation cannot pair a player afterward', async () => {
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  const service = new MatchService(async () => { await gate; return { version: 'synthetic', selectionIds: new Set(), playerIds: new Set(), links: new Map() }; });
+  const opened: string[] = [], closed: string[] = [];
+  const service = new MatchService(async () => { await gate; return { version: 'synthetic', selectionIds: new Set(), playerIds: new Set(), links: new Map() }; }, undefined, {
+    async start(record) { opened.push(record.matchId); }, async close(id) { closed.push(id); }, async closeOpen() { return 0; },
+  });
   const matching = new Matchmaking(service); const events: unknown[] = [];
   matching.register('a', { notify: (_, data) => events.push(data) });
   matching.register('b', { notify: (_, data) => events.push(data) });
@@ -90,6 +93,32 @@ test('cancel during asynchronous match creation cannot pair a player afterward',
   matching.dequeue('b');
   release(); await pending;
   assert.equal(events.length, 0);
+  assert.deepEqual(closed, opened);
+});
+test('quitQueue cancels a quickMatch awaiting account validation', { timeout: 6000 }, async () => {
+  let release!: () => void;
+  const gate = new Promise<string>(resolve => { release = () => resolve('account'); });
+  let checks = 0;
+  const service = new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(), playerIds: new Set(), links: new Map() }));
+  const server = createSocketServer(service, undefined, () => ++checks <= 2 ? Promise.resolve('account') : gate);
+  server.httpServer.listen(0, '127.0.0.1'); await once(server.httpServer, 'listening');
+  const address = server.httpServer.address(); assert.ok(address && typeof address !== 'string');
+  const url = `http://127.0.0.1:${address.port}`;
+  const a = client(url), b = client(url);
+  try {
+    await Promise.all([socketOnce(a, 'playerId'), socketOnce(b, 'playerId')]);
+    let found = 0;
+    a.on('matchFound', () => found++); b.on('matchFound', () => found++);
+    a.emit('quickMatch'); a.emit('quitQueue'); b.emit('quickMatch');
+    await new Promise(resolve => setTimeout(resolve, 30));
+    release();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.equal(found, 0);
+    const matched = Promise.all([socketOnce(a, 'matchFound'), socketOnce(b, 'matchFound')]);
+    a.emit('quickMatch');
+    await matched;
+    assert.equal(found, 2);
+  } finally { a.disconnect(); b.disconnect(); await new Promise<void>(resolve => server.io.close(() => resolve())); }
 });
 test('opponent is notified when reconnection grace expires', async () => {
   const service = new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(), playerIds: new Set(), links: new Map() }));

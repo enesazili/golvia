@@ -1,6 +1,31 @@
 # Golvia — Proje bağlamı
 
-Son güncelleme: 3 Kasım 2026. Phase 2 tamamlandı. Phase 3 altyapısı onarıldı, tamamlanmadı. Production stabilizasyon turu yapıldı.
+## Golvia 1.1 — 8 Kasım 2026
+
+- Aktif rekabetçi maçta açık çıkış veya 30 saniyelik dönüş hakkının dolması, yalnız karşı taraf bağlıysa hükmen sonuçtur. Başlangıç öncesi ayrılma, iki tarafın aynı anda ayrılması/kaybolması, motor AFK'sı ve sunucu yeniden başlatması ELO'suzdur. Hükmen sonuç maç skorunu uydurmaz; `reason='forfeit'`, kazanan koltuğu ve gerçek skoru tek PostgreSQL transaction'ında iki ELO satırıyla saklar. Çift olaylar mevcut maç kilidi/idempotency ile bir kez sonuçlanır.
+- Socket yeniden bağlanması sunucudaki oturum hesabı ve resume anahtarıyla doğrulanır. Kopan oyuncu 30 saniyede dönerse oyuna devam eder; süre dolduktan kısa süre sonra dönerse saklanan hükmen sonucu görür. Rakip için geri sayım, hükmen galibiyet/mağlubiyet ve ELO farkı mevcut maç ekranında gösterilir. Oyun saati durmaz; çoklu socket süreci ve restart kurtarma hâlâ yoktur.
+- Doğrulama: 85/85 genel test, 9/9 izole rekabetçi PostgreSQL testi, lint, typecheck ve production build geçti. 390 px Firefox ekran görüntüsünde yatay taşma görülmedi. Gerçek cihaz, canlı proxy/SMTP/TLS ve yük testi yapılmadı. Uygulama/canlı veritabanına migrasyon uygulanmadı.
+
+## Rekabetçi sistem — 7 Kasım 2026
+
+- Doğrulanmış/aktif Better Auth hesabı `socketAccount` üzerinden sunucuda belirlenir. `quickMatch` yalnız `{kind:'ranked'|'casual'}` kabul eder; istemci userId/sonuç/ELO gönderemez. `Matchmaking` kuyrukları ayırır, hesap başına tek rekabetçi sahip tutar; DB ayrıca aktif katılımcıyı benzersiz kılar. Dahili `friendly` türü ELO dışıdır; arkadaşlık/davet arayüzü eklenmedi.
+- Motor kuralları değişmedi. Maç sonucu motor → `Matchmaking.settle` → `CompetitiveRepository.complete` akışındadır. `competitive_match`, `competitive_participant`, `competitive_rating` tabloları `db:migrate` ile eklenir. Sonuç satırı ve sıralı hesap kilitleri altında iki ELO güncellemesi tek transaction'dır. Aynı sonuç tekrar okunur; farklı skorla tekrar reddedilir. Lig saklanmaz, ELO'dan hesaplanır. Başlangıç 1000, K=32, tam sayıya yuvarlama ve sıfır alt sınırı vardır; modlar bağımsızdır.
+- 15 saniye yeniden bağlanma korunur; oyun saati durmaz ve bu sırada normal biten maçın sonucu geçerlidir. Bitiş öncesi açık iptal, kopma süresinin dolması, AFK, TTL ve restart ELO'suz iptaldir. Motor bitişi oluşmuşsa iptalden önce sonuç kaydı denenir; DB hatasında başarılı sonuç dönülmez, sonraki poll/sweep aynı kaydı yeniden dener. Kaybetmek üzereyken iptali caydıran hükmen mağlubiyet politikası henüz yoktur.
+- `/api/competitive` sınırlı/sayfalı liderlik tablosu, `/api/competitive/me` yalnız oturum sahibinin istatistik/geçmişidir. `/siralama`, oyun girişindeki rekabetçi seçenek, sonuç ELO farkı ve `/hesap` profili eklendi. Genel puan: `1000 + (maç ağırlıklı ortalama ELO - 1000) * maç/(maç+20)`; performans ELO üzerinden değerlendirilir, genel puanın ayrı ligi yoktur.
+- `npm run test:competitive` yerel, izole `golvia_account_test` için `TEST_DATABASE_URL` ister. Bu turda Git dışı `.local/competitive-postgres` altında boş PostgreSQL 18.6 kümesi kullanıldı; mevcut/canlı DB'ye bağlanılmadı. Test kümesi ve uygulama/socket süreçleri kapatıldı. Uygulama DB'sine yeni migrasyon henüz uygulanmadı.
+- Doğrulama: 81/81 birim/Socket.IO testi (önceki 71 dahil), rekabetçi PostgreSQL 8/8, mevcut PostgreSQL 11/11, gerçek Better Auth çerezleriyle puanlanan Socket.IO maçı ve hesap yaşam döngüsü, HTTP 2/2, lint/typecheck/build geçti. PostgreSQL kapatılınca liderlik API'si 503 verdi. Bekleyen bitiş snapshot'ı aynı süreçte motor TTL'inden uzun kesintilerde korunur; kaydedilen sonuç iki oyuncuya da gönderilir. Snapshot restarttan kurtulmaz. Tarayıcı erişim sunucusu yoktu; görsel/mobil kontrol yapılmadı. Canlı SMTP/TLS/proxy, yük, kalıcı canlı maç kurtarma ve çoklu süreç desteği hâlâ açık; tek socket süreci zorunlu.
+
+## Güncel devralma özeti — 7 Kasım 2026
+
+Golvia, sunucunun süre/seçim/puan kararını verdiği futbolcu bağlantısı oyunu. Next.js 16 App Router, React 19, TypeScript strict, Tailwind 4, Socket.IO, Better Auth ve PostgreSQL kullanır. `src/app` sayfa/API sınırı; `src/features/game` ve `src/hooks/useQuickMatch.ts` istemci; `src/server/game` motor/oturum; `src/server/matchmaking.ts` ve `socketServer.ts` insan eşleşmesi; `src/server/football` veri erişimi/import/kanıt; `scripts/wikidata` SQLite checkpoint'li aday toplama hattıdır. Futbol şeması, hesap şeması ve maç journal şeması ayrıdır. HTTP antrenman `/api/practice`, öneriler `/api/football`, hesap `/api/auth/[...all]`, sağlık `/api/health`; Socket.IO ayrı `npm run socket` sürecindedir.
+
+İzlenen `data/football.reviewed.json` sürümü `reviewed-2026-11-04-v7`: 51 oyuncu, 52 kulüp, 187 doğrulanmış/oynanmış kariyer. Ham Top100-a aday JSON'u ve checkpoint Git dışındadır; aday bağlantıları otomatik oyun kanıtı değildir. Hesap, ELO/lig ve yerel inceleme akışları vardır. Canlı maç durumu ve rate limit tek süreç belleğindedir; PostgreSQL journal yaşam döngüsünü, rekabetçi tablolar kesinleşmiş sonuçları saklar. Canlı SMTP, TLS/proxy, iki cihaz, yük ve çoklu replica doğrulaması hâlâ açıktır.
+
+Bu kopya `/home/enes/Golvia/golvia` altındadır; aşağıdaki eski `D:\golvia` komutları önceki Windows ortamını anlatır. Bu oturumda `.env` ve `.local/postgres` yoktu. Önceki staging/DB başarı kayıtları bu ortam için geçerli doğrulama sayılmaz. 7 Kasım bakımında asenkron eşleşme iptali kuyruğu temizlendi; iptal edilen servis oturumu ve journal kapatılıyor. Kanıt testleri artık Git dışı Top100-a JSON'una bağımlı değil. `src/server/productionServer.ts` için package script veya kaynak import çağrısı bulunmadı; silmeden önce dağıtım kullanımını doğrula.
+
+Bu kopyada `npm test` 71/71, `npm run lint`, `npm run typecheck`, `npm run build` ve incelenmiş JSON için `data:check` geçti. Build yalnız mevcut `metadataBase` uyarısını verdi. `test:db`, `test:account`, HTTP uçtan uca, canlı SMTP/proxy ve fiziksel iki cihaz denemesi yapılmadı.
+
+Önceki kayıt (3 Kasım 2026): Phase 2 tamamlandı. Phase 3 altyapısı onarıldı, tamamlanmadı. Production stabilizasyon turu yapıldı.
 
 ## Konum ve çalıştırma
 

@@ -19,3 +19,14 @@ body{background:var(--bg);font-family:Arial,Helvetica,sans-serif}.site-shell{max
 @media(max-width:520px){.arena-heading{display:block}.arena-heading h1{white-space:nowrap;font-size:clamp(58px,16vw,75px)}.arena-heading>p{max-width:none;margin-top:16px}.header-actions .button.small{font-size:10px;gap:5px}.header-actions .button.small span{font-size:16px}}
 .account-tabs button[aria-pressed=true]{border-color:var(--accent)}
 .account-delete-trigger{align-self:flex-start;margin-top:18px;color:#e3a999}.account-delete{border-top:1px solid var(--line);padding-top:18px;display:grid;gap:15px}.account-delete p{font-size:12px;line-height:1.6;color:var(--muted)}.account-delete .account-confirm{flex-direction:row;align-items:center;line-height:1.5}.account-delete .account-confirm input{min-height:0;width:18px;height:18px}.account-delete button{border:1px solid #b97769;color:#ffb7a5;background:transparent;padding:13px 16px;text-align:left}.account-delete button:disabled{opacity:.5}
+
+/* Competitive panels reuse the existing theme and account controls. */
+.competitive-summary,.competitive-notice{max-width:1360px;margin:20px auto;padding:0 clamp(16px,3vw,40px)}
+.competitive-card{background:var(--surface);border:1px solid var(--line);padding:clamp(18px,3vw,30px);margin:20px 0;min-width:0;overflow-wrap:anywhere}
+.competitive-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.competitive-heading h2{font-size:20px;margin:0}
+.competitive-stats{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0;color:var(--muted)}.competitive-stats strong,.rating-result{color:var(--text)}
+.competitive-card p,.competitive-summary>p{font-size:13px;line-height:1.6;color:var(--muted)}.competitive-card select{display:block;background:var(--surface-2);color:var(--text);border:1px solid var(--line);padding:12px;margin:8px 0 20px;max-width:100%}
+.leaderboard-scroll{overflow-x:auto;max-width:100%}.leaderboard{border-collapse:collapse;width:100%;font-size:13px}.leaderboard caption{text-align:left;margin-bottom:16px}.leaderboard th,.leaderboard td{padding:12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}.leaderboard tbody th{white-space:normal;min-width:110px}
+.match-history{list-style:none;padding:0}.match-history li{display:flex;gap:14px;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:15px 0;font-size:13px}.rating-result{font-weight:700;padding:16px;border:1px solid var(--accent)}
+.match-entry .account-actions{flex-wrap:wrap}.competitive-card button:focus-visible,.competitive-card select:focus-visible,.leaderboard-scroll:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:600px){.match-entry{flex-wrap:wrap}.match-entry .account-actions{width:100%;display:flex}.match-entry .account-actions .button{flex:1}.competitive-card .account-actions{flex-wrap:wrap}}

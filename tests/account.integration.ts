@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { once } from 'node:events';
 import { Pool } from 'pg';
@@ -36,6 +37,48 @@ function emailLink(raw: string): URL {
   const link = body.match(/https:\/\/golvia\.test[^\s<>"']+/)?.[0];
   assert.ok(link, 'verification or reset link was not delivered to the local SMTP sink');
   return new URL(link);
+}
+
+async function rankedRoundTrip(connection: string, cookies: [string, string], users: [string, string]) {
+  const { io: connect } = await import('socket.io-client');
+  const { createSocketServer } = await import('../src/server/socketServer.ts');
+  const { MatchService } = await import('../src/server/game/service.ts');
+  const { CompetitiveRepository } = await import('../src/server/competitive/repository.ts');
+  const schema = `golvia_ranked_account_${randomUUID().replaceAll('-', '')}`;
+  const admin = new Pool({ connectionString: connection });
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  const pool = new Pool({ connectionString: connection, options: `-c search_path=${schema},public` });
+  let now = Date.now();
+  const service = new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(['a', 'b']), playerIds: new Set(['p']), links: new Map([['p', new Set(['a', 'b'])]]) }), () => now);
+  const store = new CompetitiveRepository(pool);
+  const server = createSocketServer(service, undefined, undefined, {}, undefined, store);
+  server.httpServer.listen(0, '127.0.0.1'); await once(server.httpServer, 'listening');
+  const address = server.httpServer.address(); assert.ok(address && typeof address !== 'string');
+  const sockets = cookies.map(cookie => connect(`http://127.0.0.1:${address.port}`, { autoConnect: false, reconnection: false, extraHeaders: { cookie } }));
+  try {
+    await pool.query(await readFile(new URL('../src/server/competitive/schema.sql', import.meta.url), 'utf8'));
+    const connected = sockets.map(socket => new Promise<void>(resolve => socket.once('playerId', () => resolve()))); sockets.forEach(socket => socket.connect()); await Promise.all(connected);
+    const found = sockets.map(socket => new Promise<{ matchId: string; seat: 0 | 1 }>(resolve => socket.once('matchFound', resolve)));
+    for (const socket of sockets) assert.equal((await socket.timeout(2000).emitWithAck('quickMatch', { kind: 'ranked' })).status, 200);
+    const matches = await Promise.all(found);
+    assert.equal(matches[0].matchId, matches[1].matchId);
+    assert.deepEqual((await pool.query('SELECT user_id FROM competitive_participant ORDER BY seat')).rows.map(row => row.user_id), users);
+    const send = (index: number, round: number, type: string, id: string) => sockets[index].timeout(2000).emitWithAck('playerAction', { matchId: matches[index].matchId, action: { round, attempt: 1, type, id, requestId: `${round}:${type}` } });
+    for (let round = 1; round <= 3; round++) {
+      await send(0, round, 'ready', 'ready'); await send(1, round, 'ready', 'ready'); now += 3000;
+      await send(0, round, 'choose', 'a'); await send(1, round, 'choose', 'b'); now += 4800;
+      assert.equal((await send(0, round, 'answer', 'p')).status, 200);
+      if (round < 3) now += 5000;
+    }
+    const final = await sockets[1].timeout(2000).emitWithAck('getState', { matchId: matches[1].matchId });
+    assert.deepEqual(final.ranked.after, [1016, 984]);
+    assert.equal((await store.profile(users[0])).ratings[0].wins, 1);
+    await sockets[0].timeout(2000).emitWithAck('playerAction', { matchId: matches[0].matchId, action: { round: 3, attempt: 1, type: 'answer', id: 'p', requestId: '3:answer' } });
+    assert.equal((await store.profile(users[0])).ratings[0].played, 1);
+  } finally {
+    sockets.forEach(socket => socket.disconnect()); await new Promise<void>(resolve => server.io.close(() => resolve()));
+    await pool.end(); await admin.query(`DROP SCHEMA ${schema} CASCADE`); await admin.end();
+  }
 }
 
 test('real PostgreSQL account lifecycle, verification, reset, session and isolation', { timeout: 30000 }, async () => {
@@ -108,6 +151,7 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
     const secondUser = (await (await get('/get-session', secondCookie)).json()).user;
     assert.notEqual(firstUser.id, secondUser.id);
     assert.equal(secondUser.email, otherEmail);
+    await rankedRoundTrip(url, [finalCookie, secondCookie], [firstUser.id, secondUser.id]);
     assert.equal((await post('/delete-user', { password: nextPassword, userId: secondUser.id }, finalCookie)).status, 200);
     assert.equal((await db.query('SELECT count(*) FROM golvia_auth."user" WHERE email=$1', [email])).rows[0].count, '0');
     assert.equal((await (await get('/get-session', finalCookie)).json())?.user ?? null, null);

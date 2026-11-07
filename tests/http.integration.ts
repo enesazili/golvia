@@ -3,6 +3,15 @@ import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 const origin = process.env.TEST_BASE_URL;
 if (!origin || !/^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) throw new Error('Set TEST_BASE_URL to the running local Golvia server');
+test('competitive HTTP reads validate pagination, protect profiles and expose no client rating write', async () => {
+  const board = await fetch(`${origin}/api/competitive?mode=3-2-1&page=1`);
+  assert.equal(board.status, 200); assert.equal(board.headers.get('cache-control'), 'no-store');
+  assert.ok(Array.isArray((await board.json()).items));
+  assert.equal((await fetch(`${origin}/api/competitive?mode=invalid`)).status, 400);
+  assert.equal((await fetch(`${origin}/api/competitive?page=-1`)).status, 400);
+  assert.equal((await fetch(`${origin}/api/competitive/me`)).status, 401);
+  assert.equal((await fetch(`${origin}/api/competitive`, { method: 'POST', body: JSON.stringify({ elo: 9999 }) })).status, 405);
+});
 test('HTTP training contract: identity, secrecy, validation, retries and database search', async () => {
   const post = (data: unknown, cookie = '', source = origin) => fetch(`${origin}/api/practice`, { method: 'POST', headers: { origin: source!, 'content-type': 'application/json', cookie }, body: JSON.stringify(data) });
   assert.equal((await fetch(`${origin}/api/practice`)).status, 401);

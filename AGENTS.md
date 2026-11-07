@@ -1,8 +1,17 @@
 # Golvia çalışma yönergeleri
 
+## Hızlı başlangıç (7 Kasım 2026)
+
+- Depo kökü bu kopyada `/home/enes/Golvia/golvia`; önce `git status --short`, sonra PROJECT_CONTEXT.md başı, ROADMAP.md başı ve ilgili akışın kaynağı. Aşağıdaki `D:\golvia` kuralı önceki Windows ortamının konum kaydıdır.
+- Yapısal sorularda Codebase Memory `list_projects`/`index_status` ile başla; gerekirse indeksi güncelle, grafikten çağıranları izle, `check_index_coverage` uygula. Kesin kanıt için ilgili kaynak satırlarını oku; eksik/parsiyel SQL aralıklarında grafiğe tek başına güvenme.
+- Ponytail FULL: mevcut işlevi koruyarak en küçük kök neden düzeltmesini yap; standart kütüphane ve mevcut modülleri kullan, belirsiz dosyaları silme. Özellikle motorun sunucu otoritesi, `requestId` idempotency, seçim gizliliği, kanıtlı futbol bağları ve aday/onay ayrımını koru.
+- Hızlı doğrulama: ilgili test için `npx tsx --test tests/<dosya>.test.ts`; ardından `npm test`, `npm run lint`, `npm run typecheck`. DB varsa ve izole test bağlantısı ayarlıysa `npm run test:db`/`npm run test:account`; yoksa geçmiş başarıyı güncel başarı diye yazma. HTTP/deploy değişiminde ayrıca uygun yerel sunucu testi yap.
+- Token tasarrufu: belgelerin güncel özetini ve grafik sonuçlarını önce kullan, yalnız ilgili dosyaları aç, aynı dosyayı tekrar tarama. Git dışı Top100-a ham JSON ve `.env` olmadan testlerin çalışması amaçlanır; canlı aday toplama/import yapma.
+
 - Kullanıcıyla Türkçe ve kısa iletişim kur. Önce PROJECT_CONTEXT.md, ROADMAP.md ve işle ilgili kodu oku; veri işinde data/README.md de okunmalı.
-- Phase 2 tamamlandı; mevcut Socket.IO/matchmaking kullanıcı isteğiyle onarıldı. Mevcut multiplayer işlevlerini koru. Kasım 2026 isteği hesap temelini yetkilendirdi; arkadaşlık, ELO ve dereceli maç henüz kapsam dışı.
-- Yalnızca D:\golvia kapsamında çalış. Diğer projelerin mevcut değişikliklerine dokunma. Mevcut dosyaları, varsa proje içi yönergeleri ve Git durumunu incele; reset/overwrite/commit/push/yayın yapma.
+- Phase 2 tamamlandı; mevcut Socket.IO/matchmaking işlevlerini koru. 7 Kasım 2026 isteği hesaplı rekabetçi maç/ELO/lig/profili yetkilendirdi; arkadaşlık/davet ve sezon sistemi eklenmedi.
+- Normal rekabetçi sonuç sunucu motorundan, hükmen sonuç sunucunun doğruladığı aktif maç ayrılma/kopma süresinden gelir. `CompetitiveRepository` transaction'ını, hesap kilit sırasını ve tek aktif katılımcı indeksini koru. DB başarı vermeden ELO başarısı döndürme. Maç başlamadan ayrılma, iki tarafın kaybolması, AFK ve sunucu yeniden başlatması ELO'suzdur; tek tarafın aktif maçtan ayrılması veya 30 saniyede dönememesi hükmen yenilgidir. Bitmiş maçın sonucunu iptalle silme. `npm run test:competitive` yalnız yerel izole `TEST_DATABASE_URL` ile çalışır.
+- Yalnızca mevcut Golvia depo kökünde çalış (bu kopyada `/home/enes/Golvia/golvia`, önceki Windows kopyasında `D:\golvia`). Diğer projelerin mevcut değişikliklerine dokunma. Mevcut dosyaları, varsa proje içi yönergeleri ve Git durumunu incele; reset/overwrite/commit/push/yayın yapma.
 - Codebase Memory varsa yapısal keşifte kullan; kesin metin aramalarında rg. Küçük projeyi gereksiz indeksleme. Güncel veya yabancı API için resmi belge/Context7 kullan.
 - Next.js App Router, mevcut bileşenler ve tema değişkenlerini koru. TypeScript strict kalsın. Gereksiz paket/refactor ekleme.
 - src/server/game motoru UI ve taşıma katmanından bağımsız kalsın. İstemciye süre, puan, doğruluk veya oyuncu koltuğu kararı verme. Sunucu modüllerini client bundle'a taşımama sınırını koru; istemcide yalnızca type import yapılabilir.

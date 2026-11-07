@@ -6,8 +6,13 @@ import type { Dataset } from '../src/server/football/types.ts';
 
 const read = (file: string) => JSON.parse(readFileSync(`data/${file}`, 'utf8'));
 const reviewed = read('football.reviewed.json') as Dataset;
-const candidates = read('football-top100-a.json') as Dataset;
-const proofs = read('football.match-proofs.json') as MatchProof[];
+const proofs = (read('football.match-proofs.json') as MatchProof[])
+  .filter(proof => reviewed.careers.some(career => career.id === proof.candidateCareerId));
+// Recreate the unverified leads needed by these tests from tracked reviewed records.
+const proofIds = new Set(proofs.map(proof => proof.candidateCareerId));
+const candidates: Dataset = { ...reviewed, origin: 'wikidata-candidates', careers: reviewed.careers
+  .filter(career => proofIds.has(career.id))
+  .map(career => ({ ...career, verified: false, appeared: false })) };
 const ids = new Set((read('club-catalog.top100.json') as { clubs: { id: string }[] }).clubs.map(c => c.id));
 const base: Dataset = reviewed;
 const NEW_PAIRS = ['wd-statement-Q1185419-DD6D6B44-FFE3-4242-80DB-66331AEA7162',

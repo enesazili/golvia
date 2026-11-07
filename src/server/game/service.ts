@@ -46,6 +46,12 @@ export class MatchService {
     session.closed = true;
     this.closeJournal(id, 'finished');
   }
+  cancel(id: string) {
+    const session = this.sessions.get(id);
+    if (!session) return;
+    this.sessions.delete(id);
+    if (!session.closed) this.closeJournal(id, 'cancelled');
+  }
   async transact(id: string, token: string, action?: Action) {
     const s = this.sessions.get(id);
     if (!s || s.expires <= this.clock()) { if (s) { this.sessions.delete(id); this.closeJournal(id, 'expired'); } throw new SessionError(404, 'Oturum sona erdi. Yeni antrenman başlat.'); }
@@ -53,6 +59,7 @@ export class MatchService {
     const seat = s.tokens.findIndex(t => candidate.length === Buffer.byteLength(t) && timingSafeEqual(candidate, Buffer.from(t))) as Seat | -1;
     if (seat === -1) throw new SessionError(403, 'Bu oturuma erişim yok.');
     const task = s.queue.then(() => {
+      if (this.sessions.get(id) !== s) throw new SessionError(404, 'Oturum sona erdi.');
       if (s.expires <= this.clock()) throw new SessionError(404, 'Oturum sona erdi.');
       const now = Math.max(s.lastNow, this.clock()); s.lastNow = now;
       s.match.view(seat, now);

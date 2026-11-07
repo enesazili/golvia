@@ -9,5 +9,5 @@ export async function socketAccount(cookie?: string): Promise<string | null> {
   const config = accountConfiguration();
   if (!config.database || !config.secret || !config.origin) throw new Error('Account service unavailable');
   const session = await activeSession(new Headers({ cookie: cookie! }));
-  return session?.user?.id ?? null;
+  return session?.user?.emailVerified ? session.user.id : null;
 }

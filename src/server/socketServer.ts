@@ -4,7 +4,8 @@ import { pathToFileURL } from 'node:url';
 import { Server } from 'socket.io';
 import { Pool } from 'pg';
 import { Matchmaking } from './matchmaking.ts';
-import { MatchService } from './game/service.ts';
+import { MatchService, SessionError } from './game/service.ts';
+import { CompetitiveRepository, type Competition } from './competitive/repository.ts';
 import { FootballRepository } from './football/repository.ts';
 import { PostgresMatchJournal } from './matchJournal.ts';
 import { parseAction } from './http.ts';
@@ -36,7 +37,7 @@ function clientAddress(socket: { handshake: { address?: string; headers: Record<
   return socket.handshake.address || 'unknown';
 }
 
-export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketAccount, limits: Partial<SocketLimits> = {},fallbackHandler?: RequestListener) {
+export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketAccount, limits: Partial<SocketLimits> = {},fallbackHandler?: RequestListener, competition?: Competition) {
   const settings = { ...DEFAULT_LIMITS, ...limits };
   const httpServer = createServer((request, response) => {
     if (request.method === 'GET' && request.url === '/health/live') { response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end('{"status":"up"}'); return; }
@@ -85,7 +86,15 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
     }
   };
 
-  const matchmaking = new Matchmaking(service);
+  const matchmaking = new Matchmaking(service, competition);
+  let sweeping = false;
+  const sweep = setInterval(() => {
+    for (const [token, identity] of identities) if (!identity.socketId && identity.expires <= Date.now()) identities.delete(token);
+    if (sweeping) return;
+    sweeping = true;
+    void matchmaking.sweep().catch(() => { /* Failed persistence stays pending and is retried. */ }).finally(() => { sweeping = false; });
+  }, 1000);
+  sweep.unref?.(); httpServer.on('close', () => clearInterval(sweep));
   const identities = new Map<string, { playerId: string; socketId: string; expires: number; accountId: string | null }>();
   io.use(async (socket, next) => {
     const ip = clientAddress(socket);
@@ -120,39 +129,63 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
     const playerId = identity.playerId;
     socket.data.playerId = playerId;
     const accountAuthorized = async () => !identity.accountId || identity.accountId === await resolveAccount(socket.handshake.headers.cookie);
+    let queueEpoch = 0;
     socket.emit('session', { playerId, resumeToken });
-    matchmaking.register(playerId, { notify: (event, data) => socket.emit(event, data) });
+    matchmaking.register(playerId, { notify: (event, data) => socket.emit(event, data), accountId: identity.accountId });
     socket.emit('playerId', playerId);
-    socket.on('quickMatch', () => { if (!allowed('quickMatch', 5)) return; void accountAuthorized().then(async valid => { if (valid) await matchmaking.enqueue(playerId); else socket.emit('matchError', { message: 'Oturum sona erdi.' }); }).catch(() => socket.emit('matchError', { message: 'Oturum doğrulanamadı.' })); });
-    socket.on('quitQueue', () => matchmaking.dequeue(playerId));
+    socket.on('quickMatch', (payload: unknown, ack: unknown) => {
+      if (!allowed('quickMatch', 5)) { if (typeof ack === 'function') ack({ status: 429 }); return; }
+      const epoch = queueEpoch;
+      void (async () => {
+        if (payload !== undefined && (!payload || typeof payload !== 'object' || Object.keys(payload).some(k => k !== 'kind') || !('kind' in payload) || !['casual', 'ranked'].includes(String(payload.kind)))) throw new SessionError(400, 'Geçersiz eşleşme isteği.');
+        const kind = payload && typeof payload === 'object' && 'kind' in payload && payload.kind === 'ranked' ? 'ranked' : 'casual';
+        if (!await accountAuthorized()) throw new SessionError(401, 'Oturum sona erdi.');
+        if (kind === 'ranked' && !identity.accountId) throw new SessionError(401, 'Rekabetçi maç için doğrulanmış hesabınla giriş yap.');
+        if (kind === 'ranked' && !await readiness()) throw new SessionError(503, 'Rekabetçi maç hizmeti kullanılamıyor.');
+        if (epoch !== queueEpoch) return;
+        await matchmaking.enqueue(playerId, kind);
+        if (typeof ack === 'function') ack({ status: 200 });
+      })().catch(error => {
+        const status = error instanceof SessionError ? error.status : 503;
+        const message = error instanceof SessionError ? error.message : 'Eşleşme hizmeti kullanılamıyor.';
+        socket.emit('matchError', { message, status }); if (typeof ack === 'function') ack({ status, error: message });
+      });
+    });
+    socket.on('quitQueue', (_payload: unknown, ack: unknown) => {
+      queueEpoch++;
+      void matchmaking.dequeue(playerId).then(result => { if (typeof ack === 'function') ack({ status: 200, result }); })
+        .catch(() => { socket.emit('matchError', { status: 503, message: 'Maç iptali kaydedilemedi. Yeniden dene.' }); if (typeof ack === 'function') ack({ status: 503 }); });
+    });
     for (const event of ['getState', 'playerAction']) socket.on(event, async (payload: unknown, ack: unknown) => {
       if (typeof ack !== 'function') return;
       if (!allowed(event, event === 'getState' ? 100 : 20)) { ack({ status: 429, error: 'Çok fazla istek.' }); return; }
       try {
         if (!await accountAuthorized()) { ack({ status: 401, error: 'Oturum sona erdi.' }); return; }
-        if (!payload || typeof payload !== 'object' || !('matchId' in payload) || typeof payload.matchId !== 'string') throw new Error('Geçersiz maç.');
+        if (!payload || typeof payload !== 'object' || !('matchId' in payload) || typeof payload.matchId !== 'string') throw new SessionError(400, 'Geçersiz maç.');
         const action = event === 'playerAction' ? parseAction('action' in payload && payload.action && typeof payload.action === 'object' ? payload.action as Record<string, unknown> : {}) : undefined;
         const result = await matchmaking.transact(playerId, payload.matchId, action);
         ack({ ...result, status: result.receipt && !result.receipt.accepted ? 409 : 200 });
-      } catch { ack({ status: 400, error: 'Eylem veya maç geçersiz.' }); }
+      } catch (error) { ack({ status: error instanceof SessionError && error.status === 503 ? 503 : error instanceof SessionError ? 400 : 503, error: error instanceof SessionError ? error.message : 'Maç sonucu kaydedilemedi. Yeniden denenecek.' }); }
     });
     socket.on('disconnect', () => {
       if (identity.socketId !== socket.id) return;
-      identity.socketId = ''; identity.expires = Date.now() + 15000;
-      matchmaking.handleDisconnect(playerId, 15000, () => identities.delete(resumeToken));
+      identity.socketId = ''; identity.expires = Date.now() + 60000;
+      matchmaking.handleDisconnect(playerId, 30000);
     });
   });
   return { io, httpServer, matchmaking };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 5, connectionTimeoutMillis: 3000, statement_timeout: 5000 });
   const repository = new FootballRepository(pool);
   const journal = new PostgresMatchJournal(pool, 'versus');
   const service = new MatchService(() => repository.catalog(), undefined, journal);
+  const competition = new CompetitiveRepository(pool);
+  await competition.recover();
   // Any match left open by a previous socket process is over; it cannot be resumed in memory.
   const closed = await journal.recover();
   if (closed) console.log(`Golvia closed ${closed} unfinished matches from a previous process`);
-  const { io, httpServer } = createSocketServer(service, async () => { await pool.query('SELECT 1'); await repository.catalog(); if (process.env.BETTER_AUTH_URL) await pool.query('SELECT 1 FROM golvia_auth."user" LIMIT 1'); return true; });
+  const { io, httpServer } = createSocketServer(service, async () => { await pool.query('SELECT 1'); await repository.catalog(); if (process.env.BETTER_AUTH_URL) await pool.query('SELECT 1 FROM golvia_auth."user" LIMIT 1'); return true; }, socketAccount, {}, undefined, competition);
   httpServer.listen(Number(process.env.WS_PORT ?? 3001), process.env.WS_HOST ?? (process.env.NODE_ENV === 'production' ? '127.0.0.1' : '0.0.0.0'), () => console.log('Golvia Socket.IO ready'));
   let stopping = false;
   const stop = () => {

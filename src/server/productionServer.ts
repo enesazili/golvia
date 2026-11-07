@@ -8,6 +8,7 @@ import { closeAuth } from './auth.ts';
 import { MatchService } from './game/service.ts';
 import { FootballRepository } from './football/repository.ts';
 import { PostgresMatchJournal } from './matchJournal.ts';
+import { CompetitiveRepository } from './competitive/repository.ts';
 
 const port = Number(process.env.PORT ?? 3000);
 
@@ -28,6 +29,8 @@ const handle = app.getRequestHandler();
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 5,
+  connectionTimeoutMillis: 3000,
+  statement_timeout: 5000,
 });
 
 const repository = new FootballRepository(pool);
@@ -41,6 +44,8 @@ const service = new MatchService(
 
 // Previous process matches cannot be resumed.
 const closed = await journal.recover();
+const competition = new CompetitiveRepository(pool);
+await competition.recover();
 
 if (closed) {
   console.log(
@@ -79,7 +84,8 @@ const { io, httpServer } = createSocketServer(
         response.destroy();
       }
     });
-  }
+  },
+  competition,
 );
 
 httpServer.listen(port, '0.0.0.0', () => {

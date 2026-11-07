@@ -1,5 +1,24 @@
 # Golvia — Yol haritası
 
+## Golvia 1.1 — 8 Kasım 2026
+
+- [x] Aktif rekabetçi maçtan çıkış ve 30 saniyede dönmeme için hükmen sonuç; eşleşme öncesi ve iki taraf yokken ELO'suz iptal.
+- [x] Tek transaction'da hükmen ELO, idempotent sonuç, mevcut şemadan eklemeli kısıt yükseltmesi ve izole PostgreSQL doğrulaması.
+- [x] Rakip kopma geri sayımı, dönüş, hükmen sonuç ve ELO farkı; 390 px yerel mobil görünüm kontrolü.
+- [ ] Fiziksel iki cihaz, gerçek TLS/proxy/SMTP ve yük doğrulaması; canlı migrasyon ancak yedek/geri yükleme provası ve kullanıcı onayıyla.
+
+## Güncel öncelik — 7 Kasım 2026
+
+- [x] Doğrulanmış hesapla rekabetçi kuyruk, tek aktif hesap, atomik/idempotent maç sonucu ve mod bazlı ELO; lig, genel puan, profil ve sayfalı liderlik tablosu.
+- [x] İzole PostgreSQL'de çift sonuç, eşzamanlı transaction, zorlanmış rollback, iptal yarışı ve gerçek hesap çereziyle tam Socket.IO maçı.
+- [x] Rekabetçi hükmen mağlubiyet politikası ve yerel mobil görünüm; gerçek cihaz doğrulaması 1.1 sonrası açık.
+- [x] Asenkron hesap denetiminden sonra iptal edilen hızlı eşleşmenin kuyruğa yeniden girmesini engelle; iptal edilen maç oturumunu kapat.
+- [x] Kanıt birim testlerini Git dışı Top100-a aday JSON'undan bağımsız çalıştır.
+- [ ] P1: Tek süreçte kalan maç durumu ve rate limit için kalıcı/dağıtık sahiplik tasarla; çoklu replica ve restart kurtarma bunun ardından.
+- [ ] P1: Gerçek TLS/proxy/SMTP ve iki cihazlı akış doğrulaması (izole PostgreSQL ve yerel SMTP testleri geçti).
+- [ ] P1: Kanıtsız adayları resmî oynama ve bağımsız kimlik kaydıyla tek tek incele; dört eski kimlik kanıtını yeniden doğrula.
+- [ ] P2: `src/server/productionServer.ts` dağıtımda kullanılıyor mu belirle; kullanılmıyorsa ikinci sunucu başlatma yolunu kaldır. Geçmiş faz kayıtlarındaki tamamlanma kutuları kendi tarihlerinin sonucudur; güncel durum için bu bölümü ve PROJECT_CONTEXT.md başını oku.
+
 ## Phase 1 · Tamamlandı
 - [x] Next.js, TypeScript, Tailwind temeli; responsive ana sayfa ve oyun ekranı.
 - [x] Açık/koyu tema, temel erişilebilirlik ve görsel tasarım.
@@ -27,9 +46,11 @@
 - [ ] Çoklu worker, ağ gecikmesi, sıra bozulması ve bağlantı testleri.
 
 ## Phase 4 · Hesap temeli başlatıldı; tamamlanmadı
-- [ ] Hesap ve oturum yönetimi, rekabetçi eşleşme.
-- [ ] Oyun başına kalıcı/sezonsuz ELO ve lig; genel futbol sıralaması.
-- [ ] Profil, istatistikler ve tek seferlik rating transaction işlemleri.
+- [x] Better Auth hesap/oturum temeli ve yerel sentetik doğrulama.
+- [x] Hesaba bağlı rekabetçi eşleşme (mevcut 3-2-1 modu).
+- [x] Mod başına kalıcı/sezonsuz ELO ve hesaplanan lig; maç sayısıyla dengelenmiş genel futbol puanı.
+- [x] Profil, istatistikler ve tek seferlik rating transaction işlemleri.
+- [ ] Canlı DB'de yedek/geri yükleme ve kontrollü eklemeli migrasyon; gerçek proxy/SMTP ve yük doğrulaması.
 
 ## Phase 5 · Başlamadı
 - [ ] Arkadaşlık, davet, engelleme; ELO etkilemeyen özel maç.

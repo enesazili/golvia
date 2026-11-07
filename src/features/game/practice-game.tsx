@@ -6,9 +6,11 @@ import { usePractice, type RemoteMatch } from './use-practice';
 export function PracticeGame({ remote, onRematch }: { remote?: RemoteMatch; onRematch?: () => void } = {}) {
   const game = usePractice(remote);
   const { view, teams, pending } = game;
+  const ranked = remote?.ranked ?? game.ranked;
   const input = useRef<HTMLInputElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const phase = view?.phase ?? 'lobby';
+  const forfeit = ranked?.reason === 'forfeit';
+  const phase = forfeit ? 'finished' : view?.phase ?? 'lobby';
   useEffect(() => { if (phase === 'countdown' || phase === 'select' || phase === 'answer') input.current?.focus(); }, [phase, view?.round, view?.attempt]);
   const me = remote?.seat ?? 0, opponent = me === 0 ? 1 : 0;
   const score = view ? [view.score[me], view.score[opponent]] : [0, 0];
@@ -18,7 +20,7 @@ export function PracticeGame({ remote, onRematch }: { remote?: RemoteMatch; onRe
   const choosing = phase === 'select', answering = phase === 'answer';
   const locked = choosing && !!choices[0];
   const canSearch = (phase === 'ready' && !!view && !view.ready[me]) || phase === 'countdown' || (choosing && !locked) || (answering && !view?.answered[me]);
-  const resultText = outcome ? ({
+  const resultText = forfeit ? ranked?.winner === me ? 'Rakibin ayrıldı. Hükmen galip geldin.' : 'Maçtan ayrıldın. Hükmen mağlup oldun.' : outcome ? ({
     correct: outcome.winner === me ? 'Doğru cevap. Puan senin!' : 'Rakibin doğru cevabı verdi.',
     'both-wrong': 'İki cevap da yanlış. Puan yok.',
     timeout: 'Süre doldu. Bu tur puansız.',
@@ -31,7 +33,7 @@ export function PracticeGame({ remote, onRematch }: { remote?: RemoteMatch; onRe
     : phase === 'ready' ? view?.ready[me] ? 'Rakibin hazırlanıyor.' : 'Yeni tur için hazır mısın?'
     : phase === 'countdown' ? 'Başlıyoruz.' : phase === 'select' ? locked ? 'Seçimin kilitlendi.' : 'Kulübünü veya ülkeni seç.'
     : phase === 'reveal' ? 'Karşılaşma belli oldu.' : phase === 'answer' ? view?.answered[me] ? 'Cevap hakkını kullandın.' : 'Ortak futbolcuyu bul.'
-    : phase === 'result' ? 'Tur sonucu' : view?.winner === me ? 'Maçı kazandın!' : view?.winner === opponent ? 'Maçı rakibin kazandı.' : 'Maç sona erdi.';
+    : phase === 'result' ? 'Tur sonucu' : forfeit ? ranked?.winner === me ? 'Hükmen galibiyet!' : 'Hükmen mağlubiyet.' : view?.winner === me ? 'Maçı kazandın!' : view?.winner === opponent ? 'Maçı rakibin kazandı.' : 'Maç sona erdi.';
   const stageLabel = { lobby: 'MAÇ ALANI', ready: 'HAZIRLIK', countdown: 'BAŞLANGIÇ', select: 'KULÜP SEÇİMİ', reveal: 'KARŞILAŞMA', answer: 'ORTAK FUTBOLCU', result: 'TUR SONUCU', finished: 'MAÇ SONUCU' }[phase];
   const pick = (index: number) => {
     const item = game.options[index];
@@ -52,11 +54,12 @@ export function PracticeGame({ remote, onRematch }: { remote?: RemoteMatch; onRe
         {choosing && locked && <p className="lock-message" role="status">✓ SEÇİMİN KİLİTLENDİ · Rakibin seçimi süre sonunda açılacak.</p>}
         {answering && view?.answered[me] && <p className="lock-message" role="status">{outcome?.reason === 'correct' ? 'Doğru cevap!' : 'Cevabın alındı. Bu turda ikinci cevap hakkın yok.'}</p>}
         {canSearch && <div className="search-area"><label htmlFor="game-search">{answering ? 'Futbolcu ara · Tek cevap hakkı' : 'Kulüp veya ülke ara'}{(phase === 'ready' || phase === 'countdown') && ' · Şimdiden yazabilirsin'}</label><div className="search-field"><span aria-hidden="true">⌕</span><input ref={input} id="game-search" autoComplete="off" maxLength={80} value={game.query} onChange={e => { game.setQuery(e.target.value); setActiveIndex(0); }} onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => Math.max(0, Math.min(i + 1, game.options.length - 1))); } else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => Math.max(i - 1, 0)); } else if (e.key === 'Enter' && game.options.length) { e.preventDefault(); pick(activeIndex); } }} role="combobox" aria-autocomplete="list" aria-controls="game-results" aria-expanded={game.options.length > 0} aria-activedescendant={game.options.length ? `game-option-${Math.min(activeIndex, game.options.length - 1)}` : undefined} placeholder={answering ? 'Futbolcu adı veya lakabı…' : 'En az 2 harf yaz…'} /></div><div id="game-results" className="search-results" role="listbox" aria-busy={game.searching}>{game.options.map((item, index) => <button id={`game-option-${index}`} role="option" aria-selected={index === activeIndex} key={item.id} className={index === activeIndex ? 'active-option' : ''} disabled={pending || phase === 'countdown' || phase === 'ready'} onMouseEnter={() => setActiveIndex(index)} onClick={() => pick(index)}><span className="result-mark">{item.mark || item.name.split(' ').map(n => n[0]).join('')}</span><span><strong>{item.name}</strong><small>{item.detail}</small></span><span className="result-arrow">↗</span></button>)}{game.query.trim().length >= 2 && !game.searching && game.options.length === 0 && <p className="empty-result">Bu adla oynanabilir futbolcu veya kulüp bulunamadı.</p>}</div></div>}
-        {(phase === 'result' || phase === 'finished') && <div className={`round-result ${outcome?.reason === 'correct' ? outcome.winner === me ? 'won' : 'lost' : 'neutral'}`} role="status"><span className="result-kicker">{outcome?.reason === 'correct' ? '+1 PUAN' : outcome?.reason === 'afk' ? 'MAÇ SONA ERDİ' : 'TUR TAMAMLANDI'}</span><strong>{resultText}</strong>{outcome?.winner !== null && outcome?.reason !== 'afk' && <span className="result-winner">PUANI ALAN · {outcome?.winner === me ? 'SEN' : 'RAKİBİN'}</span>}{outcome?.answerName && <span className="answer-reveal">{outcome.answerName}</span>}{phase === 'result' && <small>Sonraki tur için hazırlık {game.remaining} saniye sonra açılacak.</small>}</div>}
+        {(phase === 'result' || phase === 'finished') && <div className={`round-result ${forfeit ? ranked?.winner === me ? 'won' : 'lost' : outcome?.reason === 'correct' ? outcome.winner === me ? 'won' : 'lost' : 'neutral'}`} role="status"><span className="result-kicker">{forfeit ? 'HÜKMEN SONUÇ' : outcome?.reason === 'correct' ? '+1 PUAN' : outcome?.reason === 'afk' ? 'MAÇ SONA ERDİ' : 'TUR TAMAMLANDI'}</span><strong>{resultText}</strong>{!forfeit && outcome?.winner !== null && outcome?.reason !== 'afk' && <span className="result-winner">PUANI ALAN · {outcome?.winner === me ? 'SEN' : 'RAKİBİN'}</span>}{!forfeit && outcome?.answerName && <span className="answer-reveal">{outcome.answerName}</span>}{phase === 'result' && <small>Sonraki tur için hazırlık {game.remaining} saniye sonra açılacak.</small>}</div>}
         {game.error && <div className="result-message" role="alert">{game.error}{game.retry && <button className="text-link retry-button" disabled={pending} onClick={game.retry}>Aynı isteği tekrar gönder ↻</button>}</div>}
+        {phase === 'finished' && remote?.kind === 'ranked' && <p className="rating-result" role="status">{ranked?.status === 'completed' && ranked.before && ranked.after ? `${ranked.before[me]} → ${ranked.after[me]} ELO (${ranked.after[me] - ranked.before[me] >= 0 ? '+' : ''}${ranked.after[me] - ranked.before[me]})` : ranked?.status === 'cancelled' ? 'Maç iptal edildi. ELO değişmedi.' : 'Maç sonucu kaydediliyor…'}</p>}
         {phase === 'finished' && !remote && <button className="button" disabled={pending} onClick={() => void game.start()}>Yeni antrenman <span>↻</span></button>}
         {phase === 'finished' && remote && <button className="button" onClick={onRematch}>Yeni rakip bul <span>↻</span></button>}
-      </div><div className="match-bottom"><span>1V1 · İLK 3 PUAN</span><span>Derece etkisi yok</span></div>
+      </div><div className="match-bottom"><span>1V1 · İLK 3 PUAN</span><span>{remote?.kind === 'ranked' ? 'REKABETÇİ · ELO' : 'Derece etkisi yok'}</span></div>
     </section><aside className="arena-sidebar"><div className="side-rules"><span className="eyebrow">MAÇ KILAVUZU</span><h3>Üç saniye.<br />Tek cevap.</h3><p><b>03</b><span>Kulüp veya ülke seç.</span></p><p><b>15</b><span>Ortak futbolcuyu bul.</span></p><p><b>01</b><span>Bu turdaki cevap hakkın.</span></p><p><b>03</b><span>Maçı kazandıran puan.</span></p></div><p className="arena-footnote">Kulüp için A takımda oynama, ülke için A millî takımı temsil etme gerekir. Vatandaşlık tek başına yeterli değildir.{!remote && ' Antrenmanda rakip simülasyondur.'}</p></aside></div>
   </main>;
 }

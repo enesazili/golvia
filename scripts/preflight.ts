@@ -28,7 +28,7 @@ catch { throw new Error('Production build missing; run npm run build first'); }
 const pool = new Pool({ connectionString: databaseUrl, max: 1, connectionTimeoutMillis: 5000 });
 try {
   await pool.query('SELECT 1');
-  const required = ['football_dataset', 'football_entity', 'football_career', 'football_link', 'golvia_match'];
+  const required = ['football_dataset', 'football_entity', 'football_career', 'football_link', 'golvia_match', 'competitive_rating', 'competitive_match', 'competitive_participant'];
   if (authConfigured) required.push('golvia_auth."user"', 'golvia_auth.session');
   for (const table of required) {
     // Table names come from this fixed list, never from user input.
