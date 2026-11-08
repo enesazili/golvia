@@ -104,14 +104,14 @@ test('cancel during asynchronous match creation cannot pair a player afterward',
 });
 test('quitQueue cancels a quickMatch awaiting account validation', { timeout: 6000 }, async () => {
   let release!: () => void;
-  const gate = new Promise<string>(resolve => { release = () => resolve('account'); });
+  const gate = new Promise<void>(resolve => { release = resolve; });
   let checks = 0;
   const service = new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(), playerIds: new Set(), links: new Map() }));
-  const server = createSocketServer(service, undefined, () => ++checks <= 2 ? Promise.resolve('account') : gate);
+  const server = createSocketServer(service, undefined, async cookie => { if(++checks>2)await gate;return cookie==='test=a'?'account-a':'account-b'; });
   server.httpServer.listen(0, '127.0.0.1'); await once(server.httpServer, 'listening');
   const address = server.httpServer.address(); assert.ok(address && typeof address !== 'string');
   const url = `http://127.0.0.1:${address.port}`;
-  const a = client(url), b = client(url);
+  const a = client(url,{extraHeaders:{cookie:'test=a'}}), b = client(url,{extraHeaders:{cookie:'test=b'}});
   try {
     await Promise.all([socketOnce(a, 'playerId'), socketOnce(b, 'playerId')]);
     let found = 0;

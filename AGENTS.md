@@ -1,5 +1,12 @@
 # Golvia çalışma yönergeleri
 
+## Sosyal sistem — 1.5.0
+
+- `src/server/social` ilişkiler/davet/bildirim/özel geçmişi tutar. `/social` namespace işlemleri cookie oturumunu yeniden doğrular; actor ID istemciden alınmaz. Presence yalnız kabul edilmiş arkadaşlara gösterilir ve tek socket sürecine aittir.
+- `Matchmaking` hesap sahipliği hem kuyruk/maç hem kabul edilmiş davet rezervasyonunu kapsar. `pairFriends` mevcut motoru kullanır; özel sonuç deposunu rekabetçi ELO deposuna yönlendirme. `queueEpoch`, sabit hesap kilit sırası, çift kabul ve süre kontrollerini koru.
+- SocialProvider globaldir; yeni davet eski maç devam anahtarını taşımaz. İlk matchFound ve reconnect mesajlarında arkadaşın account ID'si tekrar davet içindir; kimlik doğrulama değildir. Sonuç kapatmada rakip state temizlenir.
+- Sosyal migration mevcut `db:migrate` içindedir (auth önce). Canlıya otomatik uygulama. `test:social` yalnız localhost golvia_account_test ile çalışır; FK silme/anonim rakip geçmişi ve ELO izolasyonunu koru.
+
 ## Profil ve kariyer — 1.3.0
 
 - Rank eşiklerini `src/lib/rating.ts` tek kaynağından kullan; 900/1100/1300/1500/1800 uyumluluğunu koru. İstemcide ELO/rank yazımı açma.
@@ -30,7 +37,7 @@
 - Token tasarrufu: belgelerin güncel özetini ve grafik sonuçlarını önce kullan, yalnız ilgili dosyaları aç, aynı dosyayı tekrar tarama. Git dışı Top100-a ham JSON ve `.env` olmadan testlerin çalışması amaçlanır; canlı aday toplama/import yapma.
 
 - Kullanıcıyla Türkçe ve kısa iletişim kur. Önce PROJECT_CONTEXT.md, ROADMAP.md ve işle ilgili kodu oku; veri işinde data/README.md de okunmalı.
-- Phase 2 tamamlandı; mevcut Socket.IO/matchmaking işlevlerini koru. 7 Kasım 2026 isteği hesaplı rekabetçi maç/ELO/lig/profili yetkilendirdi; arkadaşlık/davet ve sezon sistemi eklenmedi.
+- Phase 2 tamamlandı; mevcut Socket.IO/matchmaking işlevlerini koru. 7 Kasım 2026 isteği hesaplı rekabetçi maç/ELO/lig/profili yetkilendirdi; arkadaşlık/davet 1.5.0 ile eklendi; sezon sistemi eklenmedi.
 - Normal rekabetçi sonuç sunucu motorundan, hükmen sonuç sunucunun doğruladığı aktif maç ayrılma/kopma süresinden gelir. `CompetitiveRepository` transaction'ını, hesap kilit sırasını ve tek aktif katılımcı indeksini koru. DB başarı vermeden ELO başarısı döndürme. Maç başlamadan ayrılma, iki tarafın kaybolması, AFK ve sunucu yeniden başlatması ELO'suzdur; tek tarafın aktif maçtan ayrılması veya 30 saniyede dönememesi hükmen yenilgidir. Bitmiş maçın sonucunu iptalle silme. `npm run test:competitive` yalnız yerel izole `TEST_DATABASE_URL` ile çalışır.
 - Yalnızca mevcut Golvia depo kökünde çalış (bu kopyada `/home/enes/Golvia/golvia`, önceki Windows kopyasında `D:\golvia`). Diğer projelerin mevcut değişikliklerine dokunma. Mevcut dosyaları, varsa proje içi yönergeleri ve Git durumunu incele; reset/overwrite/commit/push/yayın yapma.
 - Codebase Memory varsa yapısal keşifte kullan; kesin metin aramalarında rg. Küçük projeyi gereksiz indeksleme. Güncel veya yabancı API için resmi belge/Context7 kullan.

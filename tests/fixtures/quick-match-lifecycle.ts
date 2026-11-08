@@ -55,4 +55,10 @@ test('finished and forfeit results retain their opponent until dismissed, then n
   cancelled.emit('matchCancelled'); assert.equal(render().opponentId, null); assert.equal(render().opponentName, 'Rakip');
   await render().start('ranked'); cancelled.io.emit('reconnect_failed'); assert.equal(render().status, 'queue');
 
+  acknowledgement={status:200};await render().cancel();await render().start('friendly','','fresh-invite');
+  const friendly=connections.at(-1)!;
+  friendly.emit('matchFound',{matchId:'friendly',opponentId:'peer',opponentName:'Arkadaş',opponentAccountId:'account-friend',seat:0,kind:'friendly'});
+  friendly.emit('friendlyResult',{matchId:'friendly',status:'completed',reason:'finished'});
+  assert.equal(render().opponentAccountId,'account-friend');assert.equal(render().ranked?.status,'completed');
+  await render().cancel();assert.equal(render().opponentAccountId,null);assert.equal(sessionStorage.getItem('golvia:friend-invite'),null);
 });

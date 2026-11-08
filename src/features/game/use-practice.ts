@@ -39,12 +39,12 @@ export function usePractice(remote?: RemoteMatch) {
     if (!remoteSocket || !remoteId) return;
     let active = true;
     const onRanked = (result: RankedResult & { view?: View }) => { if (active && result.matchId === remoteId && result.view) accept(result.view, result); };
-    remoteSocket.on('rankedResult', onRanked);
+    remoteSocket.on('rankedResult', onRanked);remoteSocket.on('friendlyResult', onRanked);
     void remoteSocket.timeout(5000).emitWithAck('getState', { matchId: remoteId }).then(data => {
       if (active && data.view) accept(data.view, data.ranked);
       else if (active) setError(data.error ?? 'Maç okunamadı.');
     }).catch(() => { if (active) setError('Maç bağlantısı kesildi.'); });
-    return () => { active = false; remoteSocket.off('rankedResult', onRanked); };
+    return () => { active = false; remoteSocket.off('rankedResult', onRanked);remoteSocket.off('friendlyResult', onRanked); };
   }, [remoteSocket, remoteId]);
   useEffect(() => {
     const controller = new AbortController();

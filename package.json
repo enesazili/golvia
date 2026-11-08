@@ -1,6 +1,6 @@
 {
   "name": "golvia",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
@@ -33,7 +33,8 @@
     "data:review:report": "node --env-file=.env --import tsx scripts/football-review-report.ts",
     "data:review:export": "node --env-file=.env --import tsx scripts/football-review-export.ts",
     "data:review:integrity": "node --env-file=.env --import tsx scripts/football-review-integrity.ts",
-    "data:review:pilot": "node --env-file=.env --import tsx scripts/football-review-pilot.ts"
+    "data:review:pilot": "node --env-file=.env --import tsx scripts/football-review-pilot.ts",
+    "test:social": "node --env-file-if-exists=.env --import tsx --test tests/social.integration.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.15",

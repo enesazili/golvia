@@ -1,3 +1,5 @@
+import { SocialProvider } from '@/features/social/social-provider';
+import { socketIdentity } from '@/server/socketAuth';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { Header } from '@/components/header';
@@ -8,7 +10,8 @@ export const metadata: Metadata = { title: { default: 'Golvia — 3-2-1 futbol o
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // The CSP nonce is issued by src/proxy.ts for every document request. Reading headers also
   // opts all rendered pages into dynamic rendering, which nonce-based CSP requires.
-  await headers();
-  return <html lang="tr"><body><a className="skip-link" href="#main">İçeriğe geç</a><div className="site-shell"><Header />{children}<footer><div className="footer-identity"><Link href="/">Golvia</Link><span>v{version}</span></div><nav aria-label="Yasal bilgiler">{[['kosullar', 'Kullanım Koşulları'], ['gizlilik', 'Gizlilik'], ['kvkk', 'KVKK'], ['cerezler', 'Çerez Politikası']].map(([slug, title]) => <Link key={slug} href={`/yasal/${slug}`}>{title}</Link>)}</nav></footer></div></body></html>;
+  const requestHeaders=await headers();
+  let social:string|null=null;try{social=(await socketIdentity(requestHeaders.get('cookie')??undefined))?.id??null;}catch{/* Account outage leaves practice available. */}
+  return <html lang="tr"><body><a className="skip-link" href="#main">İçeriğe geç</a><div className="site-shell"><SocialProvider key={social??'guest'} enabled={!!social}><Header />{children}</SocialProvider><footer><div className="footer-identity"><Link href="/">Golvia</Link><span>v{version}</span></div><nav aria-label="Yasal bilgiler">{[['kosullar', 'Kullanım Koşulları'], ['gizlilik', 'Gizlilik'], ['kvkk', 'KVKK'], ['cerezler', 'Çerez Politikası']].map(([slug, title]) => <Link key={slug} href={`/yasal/${slug}`}>{title}</Link>)}</nav></footer></div></body></html>;
 }
 

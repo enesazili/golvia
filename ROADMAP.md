@@ -1,5 +1,18 @@
 # Golvia — Yol haritası
 
+## Golvia 1.5.0 — Sosyal ve arkadaş maçı
+
+- [x] Oturum doğrulamalı arama, kalıcı istek/kabul/ret/iptal/kaldırma ve iki yönlü engelleme.
+- [x] Kullanıcı çifti benzersizliği, sabit sırada hesap kilitleri ve eşzamanlı istek koruması.
+- [x] Yalnız arkadaşlara görünür Socket.IO presence, çoklu sekme, yeniden bağlantı ve oturum iptali.
+- [x] Süreli davet, kabul/ret/iptal/expiry; tek kullanımlılık ve dereceli/özel maçlar arasında ortak hesap rezervasyonu.
+- [x] Mevcut motor/oyun ekranında ELO'suz özel 1v1, sonuç, yeni tekrar daveti ve ayrı özel geçmiş.
+- [x] Kalıcı bildirim/okundu, tekrar toast engeli, arka plan sekmesinden geri dönüş; özel profil ve veri exportu.
+- [x] Hesap silme FK temizliği, tekrarlanabilir sosyal migration, yeni bağımlılık eklemeden 1.5.0 sürüm eşitleme.
+- [x] 124 genel + 45 PostgreSQL (10 sosyal/10 rekabet/10 hesap/15 DB) + 2 HTTP; iki Firefox oturumu ve dört genişlik.
+- [ ] Yedek sonrası staging/canlı migration işleminin kullanıcı tarafından uygulanması; Render'da tek Socket.IO süreci ve /socket.io TLS/proxy kontrolü.
+- [ ] Fiziksel iki cihaz, reconnect/arka plan sekmesi ve eşzamanlı gerçek yük denemesi; mevcut hukuki/sağlayıcı canlı doğrulama eksikleri.
+
 ## Golvia 1.4.1 — Wikidata CC0 görünüm verisi
 
 - [x] Wikidata CC0-1.0 toplama: yalnız P54 + P1350 ≥ 1; 35.214 oyuncu keşfi, 59.881 üyelik satırı; statement/maç/yıl provenance'ı.

@@ -35,7 +35,7 @@ const pool = new Pool({ connectionString: databaseUrl, max: 1, connectionTimeout
 try {
   await pool.query('SELECT 1');
   const required = ['football_dataset', 'football_entity', 'football_career', 'football_link', 'golvia_match', 'competitive_rating', 'competitive_match', 'competitive_participant'];
-  if (authConfigured) required.push('golvia_auth."user"', 'golvia_auth.session', 'golvia_auth.email_verification');
+  if (authConfigured) required.push('golvia_auth."user"', 'golvia_auth.session', 'golvia_auth.email_verification','social_friendship','social_block','social_invite','social_match','social_notification');
   for (const table of required) {
     // Table names come from this fixed list, never from user input.
     const result = await pool.query(`SELECT to_regclass($1) IS NOT NULL AS present`, [table.includes('.') ? table.replaceAll('"', '') : `public.${table}`]);

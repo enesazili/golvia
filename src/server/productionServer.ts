@@ -1,3 +1,4 @@
+import { SocialRepository } from './social/repository.ts';
 
 import next from 'next';
 import { Pool } from 'pg';
@@ -46,6 +47,7 @@ const service = new MatchService(
 const closed = await journal.recover();
 const competition = new CompetitiveRepository(pool);
 await competition.recover();
+const social=new SocialRepository(pool);await social.recover();
 
 if (closed) {
   console.log(
@@ -86,6 +88,7 @@ const { io, httpServer } = createSocketServer(
     });
   },
   competition,
+  social,
 );
 
 httpServer.listen(port, '0.0.0.0', () => {
