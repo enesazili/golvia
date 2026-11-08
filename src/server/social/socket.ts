@@ -3,12 +3,13 @@ import type { Matchmaking } from '../matchmaking.ts';
 import { SessionError } from '../game/service.ts';
 import { SocialRepository, type SocialAction } from './repository.ts';
 type Resolver=(cookie?:string)=>Promise<string|{id:string;name:string}|null>;
-const actions=new Set(['request','accept','reject','cancel','remove','block','unblock','invite','invite-accept','invite-reject','invite-cancel']);
+const actions=new Set(['request','accept','reject','cancel','remove','block','unblock','invite','invite-accept','invite-reject','invite-cancel','rematch']);
 /** Presence and game ownership belong to this single socket process. Invitations/notifications are durable. */
 export function installSocial(io:Server,repo:SocialRepository,matchmaking:Matchmaking,resolve:Resolver,
   authenticate:(socket:Socket,next:(err?:Error)=>void)=>void,release:(account:string,ip:string)=>void,online:(account:string)=>boolean){
   const ns=io.of('/social');ns.use(authenticate);
   const attempts=new Map<string,{n:number;until:number}>();
+  const chatRates=new Map<string,{n:number;until:number}>();
   const joins=new Map<string,{users:Map<string,string>;participants:string[];expires:number}>();
   const clearJoin=(id:string,except?:string)=>{
     const entry=joins.get(id);if(entry)for(const player of entry.users.values())if(player!==except)for(const socket of io.sockets.sockets.values())if(socket.data.playerId===player)socket.emit('matchCancelled');
@@ -24,18 +25,34 @@ export function installSocial(io:Server,repo:SocialRepository,matchmaking:Matchm
       try{
         await authorized(socket);
         const now=Date.now();let slot=attempts.get(actor);if(!slot||slot.until<=now){slot={n:0,until:now+10000};attempts.set(actor,slot);}if(++slot.n>35)throw new SessionError(429,'Çok fazla işlem. Biraz bekle.');
-        if(!data||typeof data!=='object'||Array.isArray(data)||Object.keys(data).some(k=>!['action','target','query','page'].includes(k)))throw new SessionError(400,'Geçersiz işlem.');
-        const body=data as {action?:unknown;target?:unknown;query?:unknown;page?:unknown};
+        if(!data||typeof data!=='object'||Array.isArray(data)||Object.keys(data).some(k=>!['action','target','query','page','text','requestId','before','upTo','messageId','typing'].includes(k)))throw new SessionError(400,'Geçersiz işlem.');
+        const body=data as {action?:unknown;target?:unknown;query?:unknown;page?:unknown;text?:unknown;requestId?:unknown;before?:unknown;upTo?:unknown;messageId?:unknown;typing?:unknown};
         if(body.action==='state'){
           const state=await repo.state(actor);ack({status:200,data:{...state,people:state.people.map(row=>({...row,presence:row.status==='accepted'?presence(row.id):undefined}))}});return;
         }
+        if(body.action==='recent'){ack({status:200,data:await repo.recent(actor)});return;}
         if(body.action==='search'){if(typeof body.query!=='string')throw new SessionError(400,'Arama gerekli.');ack({status:200,data:await repo.search(actor,body.query)});return;}
         if(body.action==='read'){await repo.read(actor);changed(actor);ack({status:200});return;}
         if(body.action==='history'){ack({status:200,data:await repo.history(actor,body.page===undefined?1:Number(body.page))});return;}
         if(typeof body.target!=='string'||body.target.length>160)throw new SessionError(400,'Oyuncu veya davet gerekli.');
+        if(typeof body.action==='string'&&body.action.startsWith('chat-')){
+          const peer=body.target;
+          if(body.action==='chat-send'||body.action==='chat-typing'){
+            const key=`${actor}:${body.action}`,now=Date.now();let rate=chatRates.get(key);
+            if(!rate||rate.until<=now){rate={n:0,until:now+10000};chatRates.set(key,rate);}
+            if(++rate.n>(body.action==='chat-send'?8:6))throw new SessionError(429,'Biraz sonra tekrar dene.');
+          }
+          if(body.action==='chat-history'){ack({status:200,data:await repo.chat.history(actor,peer,body.before)});return;}
+          if(body.action==='chat-send'){const message=await repo.chat.send(actor,peer,body.text,body.requestId);ns.to(`user:${peer}`).emit('chatChanged',{peerId:actor,message});ns.to(`user:${actor}`).emit('chatChanged',{peerId:peer,message});changed(actor,peer);ack({status:200,data:message});return;}
+          if(body.action==='chat-read'){await repo.chat.read(actor,peer,body.upTo);changed(actor);ack({status:200});return;}
+          if(body.action==='chat-delete'){const message=await repo.chat.remove(actor,peer,body.messageId);ns.to(`user:${peer}`).emit('chatChanged',{peerId:actor,message});ns.to(`user:${actor}`).emit('chatChanged',{peerId:peer,message});changed(actor,peer);ack({status:200,data:message});return;}
+          if(body.action==='chat-typing'){if(typeof body.typing!=='boolean')throw new SessionError(400,'Geçersiz yazıyor durumu.');await repo.chat.typing(actor,peer);ns.to(`user:${peer}`).emit('chatTyping',{from:actor,active:body.typing});ack({status:200});return;}
+          throw new SessionError(400,'Geçersiz sohbet işlemi.');
+        }
         if(body.action==='profile'){ack({status:200,data:await repo.publicProfile(actor,body.target)});return;}
         if(!actions.has(String(body.action)))throw new SessionError(400,'Geçersiz işlem.');
-        if(body.action==='invite' && (!online(body.target)||matchmaking.busy(actor)||matchmaking.busy(body.target)))throw new SessionError(409,!online(body.target)?'Arkadaşın çevrimdışı.':'Oyunculardan biri müsait değil.');
+        const destination=body.action==='rematch'?await repo.rematchTarget(actor,body.target):body.target;
+        if((body.action==='invite'||body.action==='rematch') && (!online(destination)||matchmaking.busy(actor)||matchmaking.busy(destination)))throw new SessionError(409,!online(destination)?'Oyuncu çevrimdışı.':'Oyunculardan biri müsait değil.');
         let party:string|undefined,expires:number|undefined;
         if(body.action==='invite-accept'){
           // Repository still owns recipient authorization, expiry, block and replay checks.
@@ -55,6 +72,7 @@ export function installSocial(io:Server,repo:SocialRepository,matchmaking:Matchm
   });
   const timer=setInterval(()=>{
     void repo.expire().catch(()=>{/* Retry expiry after a database outage. */});
+    for(const [key,slot]of chatRates)if(slot.until<=Date.now())chatRates.delete(key);
     for(const [actor,slot]of attempts)if(slot.until<=Date.now())attempts.delete(actor);
     for(const [id,entry]of joins)if(entry.expires<=Date.now())clearJoin(id);
     // Revalidate quiet connections too: revoked sessions must not retain inbox or presence access.

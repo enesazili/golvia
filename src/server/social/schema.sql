@@ -56,3 +56,30 @@ DO $$ BEGIN
     GRANT USAGE,SELECT ON SEQUENCE social_notification_id_seq TO golvia_app;
   END IF;
 END $$;
+
+-- Social extension: private chat, read cursors and authorized post-match rematches.
+ALTER TABLE social_invite ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'friendly' CHECK(kind IN ('friendly','rematch'));
+ALTER TABLE social_invite ADD COLUMN IF NOT EXISTS source_match text;
+CREATE TABLE IF NOT EXISTS social_message (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  sender text NOT NULL REFERENCES golvia_auth."user"(id) ON DELETE CASCADE,
+  recipient text NOT NULL REFERENCES golvia_auth."user"(id) ON DELETE CASCADE,
+  request_id text NOT NULL, body text, content_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+  CHECK(sender<>recipient), CHECK((deleted_at IS NULL AND char_length(body) BETWEEN 1 AND 500 AND body IS NOT NULL) OR (deleted_at IS NOT NULL AND body IS NULL)),
+  UNIQUE(sender,request_id)
+);
+CREATE INDEX IF NOT EXISTS social_message_pair ON social_message(LEAST(sender COLLATE "C",recipient COLLATE "C"),GREATEST(sender COLLATE "C",recipient COLLATE "C"),id DESC);
+CREATE INDEX IF NOT EXISTS social_message_unread ON social_message(recipient,sender,id) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS social_chat_read (
+  user_id text NOT NULL REFERENCES golvia_auth."user"(id) ON DELETE CASCADE,
+  peer_id text NOT NULL REFERENCES golvia_auth."user"(id) ON DELETE CASCADE,
+  last_read bigint NOT NULL DEFAULT 0 CHECK(last_read>=0),
+  PRIMARY KEY(user_id,peer_id),CHECK(user_id<>peer_id)
+);
+DO $$ BEGIN
+  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='golvia_app') THEN
+    GRANT SELECT,INSERT,UPDATE,DELETE ON social_message,social_chat_read TO golvia_app;
+    GRANT USAGE,SELECT ON SEQUENCE social_message_id_seq TO golvia_app;
+  END IF;
+END $$;

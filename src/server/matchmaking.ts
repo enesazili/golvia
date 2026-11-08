@@ -1,3 +1,5 @@
+import { REACTIONS, type Reaction } from '../lib/reactions.ts';
+import { randomUUID } from 'node:crypto';
 import { MatchService, SessionError } from './game/service.ts';
 import type { Action, View } from './game/engine.ts';
 import type { Competition } from './competitive/repository.ts';
@@ -6,6 +8,7 @@ type Peer = { notify: (event: string, data: unknown) => void; accountId?: string
 type Pair = { players: [string, string]; accounts:[string|null,string|null]; names: [string, string]; tokens: [string, string]; kind: MatchKind; started: boolean; quitting: Set<string>; result?: RankedResult; pendingView?: View; queue: Promise<unknown> };
 /** One socket process owns the queue and credentials. The database owns ranked results. */
 export class Matchmaking {
+  private reactionLimits=new Map<string,{at:number;since:number;count:number}>();
   private peers = new Map<string, Peer>();
   private waiting = new Map<string, MatchKind>();
   private matches = new Map<string, Pair>();
@@ -54,6 +57,18 @@ export class Matchmaking {
     });
     this.queue=task.catch(()=>undefined);return task;
   }
+  react(playerId:string,matchId:string,emoji:unknown){
+    const pair=this.matches.get(matchId);
+    if(!pair||this.memberships.get(playerId)!==matchId||!pair.players.includes(playerId)||pair.result||pair.pendingView?.phase==='finished'||pair.quitting.size>0)throw new SessionError(403,'Maça erişim yok.');
+    if(typeof emoji!=='string'||!Object.hasOwn(REACTIONS,emoji))throw new SessionError(400,'Geçersiz tepki.');
+    const now=Date.now(),previous=this.reactionLimits.get(playerId);
+    const slot=previous&&now-previous.since<10000?previous:{at:0,since:now,count:0};
+    if(now-slot.at<1500||slot.count>=4)throw new SessionError(429,'Tepkiler arasında biraz bekle.');
+    slot.at=now;slot.count++;this.reactionLimits.set(playerId,slot);
+    const reaction={id:randomUUID(),matchId,from:playerId,emoji:emoji as Reaction};
+    this.peers.get(pair.players.find(player=>player!==playerId)!)?.notify('matchReaction',reaction);
+    return reaction;
+  }
   register(playerId: string, peer: Peer) {
     const timer = this.disconnectTimers.get(playerId);
     if (timer) { clearTimeout(timer); this.disconnectTimers.delete(playerId); }
@@ -62,7 +77,7 @@ export class Matchmaking {
     const matchId = this.memberships.get(playerId), pair = matchId ? this.matches.get(matchId) : undefined;
     if (matchId && pair) {
       const seat = pair.players.indexOf(playerId) as 0 | 1;
-      peer.notify('matchFound', { matchId, opponentId: pair.players[1 - seat], opponentName: pair.names[1 - seat], opponentAccountId:pair.kind==='friendly'?pair.accounts[1-seat]:undefined, seat, kind: pair.kind });
+      peer.notify('matchFound', { matchId, opponentId: pair.players[1 - seat], opponentName: pair.names[1 - seat], opponentAccountId:pair.accounts[1-seat]??undefined, seat, kind: pair.kind });
       if (pair.result) peer.notify(this.resultEvent(pair), pair.result);
       const opponentDeadline = this.disconnectedUntil.get(pair.players[1 - seat]);
       if (opponentDeadline) peer.notify('opponentDisconnected', { matchId, graceMs: Math.max(0, opponentDeadline - Date.now()), deadline: opponentDeadline });
@@ -122,7 +137,7 @@ export class Matchmaking {
         this.matches.set(matchId, { players, accounts:players.map(id=>this.peers.get(id)?.accountId??null) as [string|null,string|null], names, tokens: session.tokens, kind, started: false, quitting: new Set(), queue: Promise.resolve() });
         players.forEach((id, seat) => {
           this.memberships.set(id, matchId);
-          this.peers.get(id)?.notify('matchFound', { matchId, opponentId: players[1 - seat], opponentName: names[1 - seat], seat, kind });
+          this.peers.get(id)?.notify('matchFound', { matchId, opponentId: players[1 - seat], opponentName: names[1 - seat], opponentAccountId:this.peers.get(players[1-seat])?.accountId??undefined, seat, kind });
         });
       } catch (error) {
         if (session) {
@@ -148,7 +163,7 @@ export class Matchmaking {
       ? await this.results(pair)!.cancel(matchId, 'afk')
       : await this.results(pair)!.complete(matchId, view.score, view.winner, view.serverNow);
     pair.pendingView = undefined;
-    for (const id of pair.players) { this.releaseAccount(id); this.peers.get(id)?.notify(this.resultEvent(pair), { ...pair.result, view }); }
+    for (const id of pair.players) { this.reactionLimits.delete(id); this.releaseAccount(id); this.peers.get(id)?.notify(this.resultEvent(pair), { ...pair.result, view }); }
   }
   async transact(playerId: string, matchId: string, action?: Action) {
     const pair = this.matches.get(matchId);
@@ -192,6 +207,7 @@ export class Matchmaking {
       }
       this.matches.delete(id); this.service.cancel(id);
       for (const member of pair.players) {
+        this.reactionLimits.delete(member);
         const timer = this.disconnectTimers.get(member); if (timer) { clearTimeout(timer); this.disconnectTimers.delete(member); }
         this.disconnectedUntil.delete(member);
         this.releaseAccount(member); this.memberships.delete(member);

@@ -34,7 +34,7 @@
     "data:review:export": "node --env-file=.env --import tsx scripts/football-review-export.ts",
     "data:review:integrity": "node --env-file=.env --import tsx scripts/football-review-integrity.ts",
     "data:review:pilot": "node --env-file=.env --import tsx scripts/football-review-pilot.ts",
-    "test:social": "node --env-file-if-exists=.env --import tsx --test tests/social.integration.ts"
+    "test:social": "node --env-file-if-exists=.env --import tsx --test --test-concurrency=1 tests/social*.integration.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.15",

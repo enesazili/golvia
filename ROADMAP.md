@@ -1,5 +1,18 @@
 # Golvia — Yol haritası
 
+## Golvia 1.5.0 — Sosyal sohbet devamı
+
+- [x] Yalnız arkadaşlar arasında kalıcı birebir sohbet; oturum/engel kontrolü, uzunluk/hız sınırı ve tekrar gönderim idempotency.
+- [x] Yazıyor, okunmamış sayacı, sayfalı mesaj geçmişi ve gönderenin mesaj silmesi; sohbetten mevcut maç daveti.
+- [x] Motoru/zamanlayıcıyı etkilemeyen sınırlı emoji, kısa animasyon ve yerel sessize alma.
+- [x] Tamamlanmış maçtan yetkili ELO'suz rövanş, arkadaş ekleme ve son 20 farklı karşılaşma.
+- [x] Final entegrasyon: 125 genel + 54 PostgreSQL + 2 HTTP; lint/typecheck/build; iki Firefox hesabı ve dört ekran genişliği.
+- [x] Sosyal worktree'sini P1 hotfix `e020ea1` korunarak ana repoyla birleştirme; entegrasyon testleri.
+- [x] Tutarlı canlı snapshot yedeği, 26 tablo için izole geri yükleme/içerik özeti doğrulaması ve iki kez minimal staging migration'ı.
+- [x] Canlıda yalnız optimize football_link view + sosyal şema migration'ı; 26 mevcut tablonun içeriği korundu.
+- [ ] Render deploy ve oturumlu sosyal akışların canlı doğrulaması.
+- [ ] Fiziksel mobil klavye ve gerçek eşzamanlı yük kontrolü.
+
 ## Golvia 1.5.0 — Sosyal ve arkadaş maçı
 
 - [x] Oturum doğrulamalı arama, kalıcı istek/kabul/ret/iptal/kaldırma ve iki yönlü engelleme.
@@ -10,7 +23,8 @@
 - [x] Kalıcı bildirim/okundu, tekrar toast engeli, arka plan sekmesinden geri dönüş; özel profil ve veri exportu.
 - [x] Hesap silme FK temizliği, tekrarlanabilir sosyal migration, yeni bağımlılık eklemeden 1.5.0 sürüm eşitleme.
 - [x] 124 genel + 45 PostgreSQL (10 sosyal/10 rekabet/10 hesap/15 DB) + 2 HTTP; iki Firefox oturumu ve dört genişlik.
-- [ ] Yedek sonrası staging/canlı migration işleminin kullanıcı tarafından uygulanması; Render'da tek Socket.IO süreci ve /socket.io TLS/proxy kontrolü.
+- [x] Yedek/izole restore sonrası staging ve canlı minimal sosyal migration.
+- [ ] Render'da tek Socket.IO süreci ve /socket.io TLS/proxy canlı kontrolü.
 - [ ] Fiziksel iki cihaz, reconnect/arka plan sekmesi ve eşzamanlı gerçek yük denemesi; mevcut hukuki/sağlayıcı canlı doğrulama eksikleri.
 
 ## Golvia 1.4.1 — Wikidata CC0 görünüm verisi

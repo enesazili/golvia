@@ -1,5 +1,12 @@
 # Golvia çalışma yönergeleri
 
+## Sosyal sohbet uzantısı — 1.5.0
+
+- `social_message` ve `social_chat_read` yalnız kabul edilmiş arkadaşlara açıktır. `SocialRepository.withFriend` hesap kilitlerini engelleme/ilişki işlemleriyle aynı sırada alır; mesaj, geçmiş, silme, okuma ve yazıyor denetimini buradan geçir. İstemci actor belirleyemez. Mesaj kimliklerini SQL'de bigint olarak sırala; `id::text` takma adıyla sıralama yapma.
+- Mesaj gönderiminde `(sender,request_id)` ve içerik özeti idempotency sağlar. Silme yalnız gönderenin içeriğini tombstone yapar; aynı isteğin tekrarı içeriği geri getirmez. İleti 500 Unicode karakter; hız sınırı hesap bazlıdır. Export yalnız sahibinin konuşmalarını içerir.
+- Rövanş mevcut tamamlanmış maçın iki hesabına 15 dakika açıktır; arkadaşlık oluşturmaz, sohbet erişimi açmaz ve her zaman mevcut ELO'suz özel maç yolunu kullanır. Engel/oturum/tek aktif maç denetimleri korunur. Son karşılaşılanlar yalnız DB'deki tamamlanmış maçlardan gelir.
+- Emoji allowlist ve hız sınırı `Matchmaking.react` içindedir; oyun motorunu ilerletmez. Tepki, yazıyor durumu ve sessize alma kalıcı değildir. Sohbet migration'ını canlıya otomatik uygulama.
+
 ## Sosyal sistem — 1.5.0
 
 - `src/server/social` ilişkiler/davet/bildirim/özel geçmişi tutar. `/social` namespace işlemleri cookie oturumunu yeniden doğrular; actor ID istemciden alınmaz. Presence yalnız kabul edilmiş arkadaşlara gösterilir ve tek socket sürecine aittir.

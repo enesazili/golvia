@@ -1,11 +1,42 @@
+import { ChatRepository } from './chat.ts';
 import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { GAME_MODE, rankProgress, type RankedResult } from '../../lib/rating.ts';
 import { SessionError } from '../game/service.ts';
 const pair = (a: string, b: string) => [a,b].sort();
-export type SocialAction = 'request'|'accept'|'reject'|'cancel'|'remove'|'block'|'unblock'|'invite'|'invite-accept'|'invite-reject'|'invite-cancel';
+export type SocialAction = 'request'|'accept'|'reject'|'cancel'|'remove'|'block'|'unblock'|'invite'|'invite-accept'|'invite-reject'|'invite-cancel'|'rematch';
 export class SocialRepository {
-  constructor(private readonly pool: Pool, private readonly inviteMs = 120000) {}
+  readonly chat:ChatRepository;
+  constructor(private readonly pool: Pool, private readonly inviteMs = 120000) {this.chat=new ChatRepository(pool,this);}
+  async withFriend<T>(actor:string,target:string,operation:(client:PoolClient)=>Promise<T>):Promise<T>{
+    if(!target||target.length>160||actor===target)throw new SessionError(400,'Geçersiz arkadaş.');
+    const client=await this.pool.connect();
+    try{await client.query('BEGIN');await this.users(client,pair(actor,target));await this.friends(client,actor,target);const result=await operation(client);await client.query('COMMIT');return result;}
+    catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+  }
+  async rematchTarget(actor:string,id:string,client:Pick<Pool,'query'>=this.pool){
+    const row=(await client.query(`SELECT opponent FROM (
+      SELECT o.user_id opponent,m.ended_at FROM competitive_match m JOIN competitive_participant p ON p.match_id=m.id AND p.user_id=$1 JOIN competitive_participant o ON o.match_id=m.id AND o.seat<>p.seat WHERE m.id=$2 AND m.status='completed'
+      UNION ALL SELECT CASE WHEN user0=$1 THEN user1 ELSE user0 END,ended_at FROM social_match WHERE id=$2 AND (user0=$1 OR user1=$1) AND status='completed'
+    ) matches WHERE ended_at>now()-interval '15 minutes' LIMIT 1`,[actor,id])).rows[0];
+    if(!row?.opponent)throw new SessionError(403,'Rövanş yalnız son maçın oyuncularına açık.');return String(row.opponent);
+  }
+  private async inviteAccess(client:Pick<Pool,'query'>,invite:{kind?:string;source_match?:string;sender:string;recipient:string}){
+    if(invite.kind!=='rematch'){await this.friends(client,invite.sender,invite.recipient);return;}
+    if(await this.rematchTarget(invite.sender,invite.source_match??'',client)!==invite.recipient)throw new SessionError(403,'Geçersiz rövanş.');
+    const blocked=await client.query('SELECT 1 FROM social_block WHERE(blocker=$1 AND blocked=$2)OR(blocker=$2 AND blocked=$1)',[invite.sender,invite.recipient]);
+    if(blocked.rowCount)throw new SessionError(403,'Bu işlem kullanılamıyor.');
+  }
+  async recent(actor:string){
+    const rows=(await this.pool.query(`WITH encounters AS(
+      SELECT o.user_id opponent,m.id match_id,m.ended_at,'ranked' kind FROM competitive_participant p JOIN competitive_match m ON m.id=p.match_id JOIN competitive_participant o ON o.match_id=m.id AND o.seat<>p.seat WHERE p.user_id=$1 AND m.status='completed'
+      UNION ALL SELECT CASE WHEN user0=$1 THEN user1 ELSE user0 END,id,ended_at,'friendly' FROM social_match WHERE(user0=$1 OR user1=$1)AND status='completed'
+    ),last_match AS(SELECT DISTINCT ON(opponent) * FROM encounters ORDER BY opponent,ended_at DESC,match_id DESC)
+    SELECT u.id,u.name,e.match_id,e.ended_at,e.kind,(e.ended_at>now()-interval '15 minutes') can_rematch,COALESCE(r.elo,1000) elo
+    FROM last_match e JOIN golvia_auth."user" u ON u.id=e.opponent LEFT JOIN competitive_rating r ON r.user_id=u.id AND r.mode=$2
+    WHERE u.id<>$1 AND u.status='active' AND u."emailVerified" AND NOT EXISTS(SELECT 1 FROM social_block WHERE(blocker=$1 AND blocked=u.id)OR(blocker=u.id AND blocked=$1)) ORDER BY e.ended_at DESC,e.match_id DESC LIMIT 20`,[actor,GAME_MODE])).rows;
+    return rows.map(row=>({...row,rank:rankProgress(row.elo)}));
+  }
   private async users(client: PoolClient, users: string[], inactiveTarget?:string) {
     const rows = await client.query('SELECT id FROM golvia_auth."user" WHERE id=ANY($1::text[]) AND ((status=\'active\' AND "emailVerified") OR id=$2) ORDER BY id COLLATE "C" FOR UPDATE', [users,inactiveTarget??null]);
     if (rows.rowCount !== users.length) throw new SessionError(403, 'Oyuncu kullanılamıyor.');
@@ -42,6 +73,8 @@ export class SocialRepository {
     try {
       await client.query('BEGIN');
       let invite;
+      let sourceMatch:string|undefined;
+      if(action==='rematch'){sourceMatch=target;target=await this.rematchTarget(actor,sourceMatch,client);}
       if (action.startsWith('invite-')) {
         invite=(await client.query('SELECT * FROM social_invite WHERE id=$1 AND (sender=$2 OR recipient=$2)',[target,actor])).rows[0];
         if(!invite) throw new SessionError(404,'Davet bulunamadı.');
@@ -81,15 +114,15 @@ export class SocialRepository {
           await client.query('UPDATE social_friendship SET status=$3,updated_at=now() WHERE user_a=$1 AND user_b=$2',[a,b,action==='accept'?'accepted':action==='reject'?'rejected':'cancelled']);
           if(action==='accept') await this.notice(client,target,actor,'friend-accepted',relation.request_id);
           if(action==='remove') await client.query("UPDATE social_invite SET status='cancelled' WHERE ((sender=$1 AND recipient=$2) OR(sender=$2 AND recipient=$1)) AND (status='pending' OR(status='accepted' AND match_id IS NULL))",[a,b]);
-        } else if(action==='invite') {
-          await this.friends(client,actor,target);
+        } else if(action==='invite'||action==='rematch') {
+          if(action==='invite')await this.friends(client,actor,target);else if(await this.rematchTarget(actor,sourceMatch!,client)!==target)throw new SessionError(403,'Geçersiz rövanş.');
           await client.query("UPDATE social_invite SET status='expired' WHERE expires_at<=now() AND (status='pending' OR(status='accepted' AND match_id IS NULL))");
           if((await client.query("SELECT 1 FROM social_invite WHERE (sender=ANY($1::text[]) OR recipient=ANY($1::text[])) AND status='pending' LIMIT 10",[[actor,target]])).rowCount!>=10) throw new SessionError(429,'Çok fazla açık davet.');
           const id=randomUUID();
-          await client.query("INSERT INTO social_invite(id,sender,recipient,status,expires_at) VALUES($1,$2,$3,'pending',now()+($4*interval '1 millisecond'))",[id,actor,target,this.inviteMs]);
+          await client.query("INSERT INTO social_invite(id,sender,recipient,status,expires_at,kind,source_match) VALUES($1,$2,$3,'pending',now()+($4*interval '1 millisecond'),$5,$6)",[id,actor,target,this.inviteMs,action==='rematch'?'rematch':'friendly',sourceMatch??null]);
           await this.notice(client,target,actor,'invite',id); invite={id};
         } else if(invite) {
-          await this.friends(client,actor,target);
+          await this.inviteAccess(client,invite);
           if(action==='invite-accept' && invite.recipient!==actor || action==='invite-reject' && invite.recipient!==actor || action==='invite-cancel' && invite.sender!==actor) throw new SessionError(403,'Davete erişim yok.');
           if(action==='invite-accept' && invite.match_id)throw new SessionError(409,'Davet zaten kullanıldı.');
           if(action==='invite-accept' && invite.status==='accepted' && new Date(invite.expires_at).getTime()>Date.now()) { /* Retry returns the same invitation, never creates another match. */ }
@@ -119,15 +152,15 @@ export class SocialRepository {
       LEFT JOIN competitive_rating r ON r.user_id=u.id AND r.mode=$2
       WHERE (f.user_a=$1 OR f.user_b=$1) AND f.status IN ('pending','accepted') AND u.status='active' AND u."emailVerified"
       AND NOT EXISTS(SELECT 1 FROM social_block WHERE (blocker=$1 AND blocked=u.id) OR(blocker=u.id AND blocked=$1)) ORDER BY f.updated_at DESC LIMIT 300`,[actor,GAME_MODE]);
-    const invites=await this.pool.query(`SELECT i.id,i.sender,i.recipient,i.status,i.expires_at,i.match_id,u.name FROM social_invite i
+    const invites=await this.pool.query(`SELECT i.id,i.sender,i.recipient,i.status,i.expires_at,i.match_id,i.kind,u.name FROM social_invite i
       JOIN golvia_auth."user" u ON u.id=CASE WHEN i.sender=$1 THEN i.recipient ELSE i.sender END
       WHERE (i.sender=$1 OR i.recipient=$1) AND i.status IN ('pending','accepted') AND i.expires_at>now() AND i.match_id IS NULL
-      AND EXISTS(SELECT 1 FROM social_friendship f WHERE f.user_a=LEAST(i.sender COLLATE "C",i.recipient COLLATE "C") AND f.user_b=GREATEST(i.sender COLLATE "C",i.recipient COLLATE "C") AND f.status='accepted')
+      AND (i.kind='rematch' OR EXISTS(SELECT 1 FROM social_friendship f WHERE f.user_a=LEAST(i.sender COLLATE "C",i.recipient COLLATE "C") AND f.user_b=GREATEST(i.sender COLLATE "C",i.recipient COLLATE "C") AND f.status='accepted'))
       AND NOT EXISTS(SELECT 1 FROM social_block WHERE (blocker=$1 AND blocked=u.id) OR(blocker=u.id AND blocked=$1)) ORDER BY i.created_at DESC LIMIT 20`,[actor]);
     const blocks=await this.pool.query('SELECT u.id,u.name FROM social_block b JOIN golvia_auth."user" u ON u.id=b.blocked WHERE blocker=$1',[actor]);
     const notices=await this.pool.query(`SELECT n.id::text,n.kind,n.reference,n.seen,u.name,n.created_at FROM social_notification n LEFT JOIN golvia_auth."user" u ON u.id=n.actor
       WHERE n.recipient=$1 ORDER BY n.id DESC LIMIT 50`,[actor]);
-    return { userId:actor,people:friends.rows.map(row=>({...row,rank:rankProgress(row.elo)})),invites:invites.rows,blocks:blocks.rows,notifications:notices.rows };
+    return { userId:actor,people:friends.rows.map(row=>({...row,rank:rankProgress(row.elo)})),invites:invites.rows,blocks:blocks.rows,notifications:notices.rows,chats:await this.chat.summaries(actor) };
   }
   async read(actor: string) {await this.pool.query('UPDATE social_notification SET seen=true WHERE recipient=$1 AND NOT seen',[actor]);}
   async expire() {await this.pool.query("UPDATE social_invite SET status='expired' WHERE expires_at<=now() AND (status='pending' OR(status='accepted' AND match_id IS NULL))");}
@@ -139,14 +172,15 @@ export class SocialRepository {
   async invitation(actor: string, id: string) {
     const row=(await this.pool.query("SELECT * FROM social_invite WHERE id=$1 AND (sender=$2 OR recipient=$2) AND status='accepted' AND expires_at>now()",[id,actor])).rows[0];
     if(!row) throw new SessionError(409,'Davet kullanılamıyor.');
-    await this.friends(this.pool,row.sender,row.recipient);return row as {id:string;sender:string;recipient:string;match_id:string|null;expires_at:string};
+    await this.inviteAccess(this.pool,row);return row as {id:string;sender:string;recipient:string;match_id:string|null;expires_at:string};
   }
   async startFriend(id: string, inviteId: string, users: [string,string], at: number) {
     const client=await this.pool.connect();
     try {
-      await client.query('BEGIN');await this.users(client,[...users].sort());await this.friends(client,...users);
+      await client.query('BEGIN');await this.users(client,[...users].sort());
       const invite=(await client.query("SELECT * FROM social_invite WHERE id=$1 AND status='accepted' AND expires_at>now() FOR UPDATE",[inviteId])).rows[0];
       if(!invite || invite.match_id || !users.includes(invite.sender) || !users.includes(invite.recipient)) throw new SessionError(409,'Davet zaten kullanıldı.');
+      await this.inviteAccess(client,invite);
       const active=await client.query("SELECT 1 FROM social_match WHERE status='active' AND (user0=ANY($1::text[]) OR user1=ANY($1::text[]))",[users]);
       if(active.rowCount) throw new SessionError(409,'Oyuncu maçta.');
       await client.query("INSERT INTO social_match(id,user0,user1,status,started_at) VALUES($1,$2,$3,'active',to_timestamp($4/1000.0))",[id,...users,at]);
@@ -173,6 +207,8 @@ export class SocialRepository {
       'blocks',COALESCE((SELECT json_agg(b) FROM (SELECT blocked FROM social_block WHERE blocker=$1) b),'[]'),
       'invites',COALESCE((SELECT json_agg(i) FROM social_invite i WHERE sender=$1 OR recipient=$1),'[]'),
       'notifications',COALESCE((SELECT json_agg(n) FROM social_notification n WHERE recipient=$1),'[]'),
+      'messages',COALESCE((SELECT json_agg(m) FROM (SELECT id,sender,recipient,body,created_at,deleted_at FROM social_message WHERE sender=$1 OR recipient=$1) m),'[]'),
+      'chat_reads',COALESCE((SELECT json_agg(r) FROM social_chat_read r WHERE user_id=$1),'[]'),
       'matches',COALESCE((SELECT json_agg(m) FROM social_match m WHERE user0=$1 OR user1=$1),'[]')) data`,[actor])).rows[0].data;
   }
   async history(actor:string,page=1){

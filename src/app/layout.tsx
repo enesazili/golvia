@@ -6,6 +6,7 @@ import { Header } from '@/components/header';
 import Link from 'next/link';
 import { version } from '../../package.json';
 import './globals.css';
+import '@/features/social/extension.css';
 export const metadata: Metadata = { title: { default: 'Golvia — 3-2-1 futbol oyunu', template: '%s | Golvia' }, description: 'İki seçim, ortak bir futbolcu. Golvia 3-2-1 ile çevrim içi rakip bul veya antrenman yap.', ...(process.env.GOLVIA_PUBLIC_ORIGIN ? { metadataBase: new URL(process.env.GOLVIA_PUBLIC_ORIGIN) } : {}), openGraph: { title: 'Golvia — 3-2-1', description: 'Futbol bilgini sahaya çıkar. Üç puana ulaş, maçı kazan.', type: 'website' } };
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // The CSP nonce is issued by src/proxy.ts for every document request. Reading headers also

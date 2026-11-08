@@ -3,17 +3,21 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { io, type Socket } from 'socket.io-client';
+import { ChatPanel } from './chat-panel';
 import type { RankProgress } from '@/lib/rating';
 export type Person={id:string;name:string;elo:number;rank:RankProgress;status?:string;requester?:string;presence?:'online'|'in-match'|'offline'};
 export type Invite={id:string;sender:string;recipient:string;status:string;expires_at:string;match_id:string|null;name:string};
 type Notice={id:string;kind:string;name:string;reference:string;seen:boolean};
-export type SocialState={userId:string;people:Person[];invites:Invite[];blocks:{id:string;name:string}[];notifications:Notice[]};
-type Command={action:string;target?:string;query?:string;page?:number};
+export type SocialState={userId:string;people:Person[];invites:Invite[];blocks:{id:string;name:string}[];notifications:Notice[];chats?:{peer_id:string;last_id:string;unread:number}[]};
+export type Command={action:string;target?:string;query?:string;page?:number;text?:string;requestId?:string;before?:string;upTo?:string;messageId?:string;typing?:boolean};
+export type SocialSend=<T=unknown>(data:Command)=>Promise<T>;
 const labels:Record<string,string>={request:'Arkadaşlık isteği', 'friend-accepted':'Arkadaşlık kabul edildi',invite:'Maç daveti','invite-accepted':'Davet kabul edildi','invite-rejected':'Davet reddedildi','invite-cancelled':'Davet iptal edildi'};
 const Context=createContext<{state:SocialState|null;connected:boolean;error:string;send:<T=unknown>(data:Command)=>Promise<T>}|null>(null);
 export function useSocial(){const context=useContext(Context);if(!context)throw new Error('Social provider missing');return context;}
 export function SocialProvider({enabled,children}:{enabled:boolean;children:ReactNode}){
   const [state,setState]=useState<SocialState|null>(null),[connected,setConnected]=useState(false),[error,setError]=useState(''),[toast,setToast]=useState('');
+  const [chatTarget,setChatTarget]=useState<string|null>(null);
+  const closeChat=useCallback(()=>setChatTarget(null),[]);
   const socket=useRef<Socket|null>(null),joining=useRef('');
   const router=useRouter(),path=usePathname();const pathRef=useRef(path);useEffect(()=>{pathRef.current=path;},[path]);
   const send=useCallback(async<T,>(data:Command):Promise<T>=>{
@@ -42,11 +46,16 @@ export function SocialProvider({enabled,children}:{enabled:boolean;children:Reac
     connection.on('disconnect',()=>{setConnected(false);setState(null);joining.current='';});
     connection.on('connect_error',()=>{setConnected(false);setError('Sosyal hizmet için doğrulanmış hesabınla giriş yap.');});
     connection.on('socialChanged',()=>{void refresh();});
+    connection.on('chatChanged',(data:{peerId:string})=>{window.dispatchEvent(new CustomEvent('golvia:chat-refresh',{detail:data}));void refresh();});
+    connection.on('chatTyping',(data:{from:string;active:boolean})=>window.dispatchEvent(new CustomEvent('golvia:chat-typing',{detail:data})));
+    const openChat=(event:Event)=>setChatTarget(typeof (event as CustomEvent).detail==='string'?(event as CustomEvent).detail:null);window.addEventListener('golvia:chat-open',openChat);
     connection.connect();const timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh();},5000);
     const focus=()=>{if(document.visibilityState==='visible')void refresh();};document.addEventListener('visibilitychange',focus);
-    return()=>{active=false;clearInterval(timer);document.removeEventListener('visibilitychange',focus);connection.removeAllListeners();connection.disconnect();socket.current=null;};
+    return()=>{active=false;window.removeEventListener('golvia:chat-open',openChat);clearInterval(timer);document.removeEventListener('visibilitychange',focus);connection.removeAllListeners();connection.disconnect();socket.current=null;};
   },[enabled,router,send]);
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(''),6000);return()=>clearTimeout(timer);},[toast]);
+  const peer=enabled&&connected?state?.people.find(person=>person.id===chatTarget&&person.status==='accepted'):undefined;
+  const unreadMessages=state?.chats?.reduce((sum,chat)=>sum+chat.unread,0)??0;
   const incoming=state?.invites.find(item=>item.status==='pending'&&item.recipient===state.userId);
-  return <Context.Provider value={{state:enabled?state:null,connected:enabled&&connected,error:enabled?error:'Doğrulanmış hesabınla giriş yap ve koşulları onayla.',send}}>{children}{enabled&&<Link href="/arkadaslar" className="social-launch" aria-label={`Arkadaşlar, ${state?.notifications.filter(item=>!item.seen).length??0} bildirim`}>Arkadaşlar{state?.notifications.some(item=>!item.seen)&&<span className="notification-dot"/>}</Link>}{enabled&&(toast||incoming)&&<aside className="social-toast" aria-live="polite"><p>{incoming?`${incoming.name} · Maç daveti`:toast}</p>{incoming&&error&&<p role="alert">{error}</p>}{incoming?<div><button onClick={()=>{void send({action:'invite-accept',target:incoming.id}).catch(err=>{setError(err.message);setToast(err.message);});}}>Kabul et</button><button onClick={()=>{void send({action:'invite-reject',target:incoming.id}).catch(err=>{setError(err.message);setToast(err.message);});}}>Reddet</button></div>:<button onClick={()=>setToast('')} aria-label="Bildirimi kapat">×</button>}</aside>}</Context.Provider>;
+  return <Context.Provider value={{state:enabled?state:null,connected:enabled&&connected,error:enabled?error:'Doğrulanmış hesabınla giriş yap ve koşulları onayla.',send}}>{children}{peer&&state&&<ChatPanel key={peer.id} peer={peer} userId={state.userId} send={send} onClose={closeChat}/>}{enabled&&<Link href="/arkadaslar" className="social-launch" aria-label={`Arkadaşlar, ${(state?.notifications.filter(item=>!item.seen).length??0)+unreadMessages} bildirim`}>Arkadaşlar{unreadMessages>0&&<b className="chat-unread">{unreadMessages}</b>}{(unreadMessages>0||state?.notifications.some(item=>!item.seen))&&<span className="notification-dot"/>}</Link>}{enabled&&(toast||incoming)&&<aside className="social-toast" aria-live="polite"><p>{incoming?`${incoming.name} · Maç daveti`:toast}</p>{incoming&&error&&<p role="alert">{error}</p>}{incoming?<div><button onClick={()=>{void send({action:'invite-accept',target:incoming.id}).catch(err=>{setError(err.message);setToast(err.message);});}}>Kabul et</button><button onClick={()=>{void send({action:'invite-reject',target:incoming.id}).catch(err=>{setError(err.message);setToast(err.message);});}}>Reddet</button></div>:<button onClick={()=>setToast('')} aria-label="Bildirimi kapat">×</button>}</aside>}</Context.Provider>;
 }

@@ -35,13 +35,15 @@ const pool = new Pool({ connectionString: databaseUrl, max: 1, connectionTimeout
 try {
   await pool.query('SELECT 1');
   const required = ['football_dataset', 'football_entity', 'football_career', 'football_link', 'golvia_match', 'competitive_rating', 'competitive_match', 'competitive_participant'];
-  if (authConfigured) required.push('golvia_auth."user"', 'golvia_auth.session', 'golvia_auth.email_verification','social_friendship','social_block','social_invite','social_match','social_notification');
+  if (authConfigured) required.push('golvia_auth."user"', 'golvia_auth.session', 'golvia_auth.email_verification','social_friendship','social_block','social_invite','social_match','social_notification','social_message','social_chat_read');
   for (const table of required) {
     // Table names come from this fixed list, never from user input.
     const result = await pool.query(`SELECT to_regclass($1) IS NOT NULL AS present`, [table.includes('.') ? table.replaceAll('"', '') : `public.${table}`]);
     if (!result.rows[0]?.present) throw new Error(`Database migration missing for ${table}; run npm run db:migrate${table.startsWith('golvia_auth') ? ' and npm run db:auth:migrate' : ''}`);
   }
   if (authConfigured) {
+    const socialColumns = await pool.query("SELECT count(*)::int n FROM information_schema.columns WHERE table_schema='public' AND table_name='social_invite' AND column_name IN ('kind','source_match')");
+    if(socialColumns.rows[0].n!==2)throw new Error('Database migration missing for social chat/rematches; run npm run db:migrate after backup');
     const columns = await pool.query("SELECT count(*)::int n FROM information_schema.columns WHERE table_schema='golvia_auth' AND table_name='user' AND column_name IN ('termsVersion','termsAcceptedAt')");
     if (columns.rows[0].n !== 2) throw new Error('Database migration missing for account terms; run npm run db:auth:migrate after backup');
   }

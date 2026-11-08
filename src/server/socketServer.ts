@@ -182,6 +182,15 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
       void (async()=>{if(identity.accountId)await socialSession?.leave(identity.accountId,playerId,invitation);return matchmaking.dequeue(playerId);})().then(result => { if (typeof ack === 'function') ack({ status: 200, result }); })
         .catch(() => { socket.emit('matchError', { status: 503, message: 'Maç iptali kaydedilemedi. Yeniden dene.' }); if (typeof ack === 'function') ack({ status: 503 }); });
     });
+    socket.on('matchReaction',async(payload:unknown,ack:unknown)=>{
+      if(typeof ack!=='function')return;
+      if(!allowed('matchReaction',12)){ack({status:429,error:'Çok fazla tepki.'});return;}
+      try{
+        if(!await accountAuthorized())throw new SessionError(401,'Oturum sona erdi.');
+        if(!payload||typeof payload!=='object'||Object.keys(payload).some(key=>!['matchId','emoji'].includes(key))||!('matchId'in payload)||typeof payload.matchId!=='string'||payload.matchId.length>160)throw new SessionError(400,'Geçersiz tepki.');
+        ack({status:200,data:matchmaking.react(playerId,payload.matchId,'emoji'in payload?payload.emoji:null)});
+      }catch(error){ack({status:error instanceof SessionError?error.status:503,error:error instanceof SessionError?error.message:'Tepki gönderilemedi.'});}
+    });
     for (const event of ['getState', 'playerAction']) socket.on(event, async (payload: unknown, ack: unknown) => {
       if (typeof ack !== 'function') return;
       if (!allowed(event, event === 'getState' ? 100 : 20)) { ack({ status: 429, error: 'Çok fazla istek.' }); return; }
