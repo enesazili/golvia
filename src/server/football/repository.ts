@@ -71,7 +71,7 @@ export class FootballRepository {
   async selections(): Promise<Suggestion[]> {
     const clubs = [...await clubIds()];
     try {
-      const result = await this.pool.query("SELECT id,name,mark,CASE WHEN kind='club' THEN 'Kulüp' ELSE 'A millî takım · Ülke' END AS detail FROM football_entity e WHERE (kind='country' OR (kind='club' AND level='senior' AND id=ANY($1::text[]))) AND EXISTS(SELECT 1 FROM football_link l WHERE l.selection_id=e.id) ORDER BY name,id", [clubs]);
+      const result = await this.pool.query("SELECT id,name,mark,CASE WHEN kind='club' THEN 'Kulüp' ELSE 'A millî takım · Ülke' END AS detail FROM football_entity e WHERE (kind='country' OR (kind='club' AND level='senior' AND id=ANY($1::text[]))) AND e.id IN (SELECT selection_id FROM football_link) ORDER BY name,id", [clubs]);
       return result.rows;
     } catch (error) {
       if (!databaseUnavailable(error)) throw error;
@@ -93,8 +93,8 @@ export class FootballRepository {
       FROM football_entity e WHERE e.kind=ANY($1::text[])
       AND (e.kind<>'club' OR e.level='senior')
       AND (e.kind<>'club' OR e.id=ANY($6::text[]))
-      AND (e.kind='player' OR EXISTS(SELECT 1 FROM football_link l WHERE l.selection_id=e.id))
-      AND (e.kind<>'player' OR (SELECT COUNT(DISTINCT l.selection_id) FROM football_link l WHERE l.player_id=e.id)>=2)
+      AND (e.kind='player' OR e.id IN (SELECT selection_id FROM football_link))
+      AND (e.kind<>'player' OR e.id IN (SELECT player_id FROM football_link GROUP BY player_id HAVING COUNT(DISTINCT selection_id)>=2))
       AND EXISTS(SELECT 1 FROM football_alias a WHERE a.entity_id=e.id AND a.search_key LIKE $2 ESCAPE '\\')
       ORDER BY (SELECT MIN(CASE WHEN a.search_key=$3 THEN 0 WHEN a.label=e.name AND a.search_key LIKE $4 ESCAPE '\\' THEN 1 WHEN a.search_key LIKE $4 ESCAPE '\\' THEN 2 WHEN a.label=e.name AND a.search_key LIKE $5 ESCAPE '\\' THEN 3 WHEN a.search_key LIKE $5 ESCAPE '\\' THEN 4 WHEN a.label=e.name THEN 5 ELSE 6 END) FROM football_alias a WHERE a.entity_id=e.id AND a.search_key LIKE $2 ESCAPE '\\'),e.name,e.id LIMIT 8`, [kind === 'player' ? ['player'] : ['club', 'country'], `%${key}%`, term, `${key}%`, `% ${key}%`, clubs]); }
     catch (error) {
@@ -139,12 +139,24 @@ export class FootballRepository {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const version = await client.query('SELECT version FROM football_dataset WHERE id=1');
       if (!version.rows[0]) throw new Error('Football dataset not imported');
-      const entities = await client.query("SELECT id,kind,name FROM football_entity e WHERE (kind='player' AND EXISTS(SELECT 1 FROM football_link l WHERE l.player_id=e.id)) OR ((kind='country' OR (kind='club' AND level='senior' AND id=ANY($1::text[]))) AND EXISTS(SELECT 1 FROM football_link l WHERE l.selection_id=e.id))", [[...clubs]]);
+      // Read the link set once. The previous entity query asked the view for
+      // player and selection membership separately, so every match start and
+      // readiness probe scanned all 33k links three times.
       const connections = await client.query('SELECT player_id,selection_id FROM football_link');
+      const entities = await client.query("SELECT id,kind,name FROM football_entity WHERE kind='player' OR kind='country' OR (kind='club' AND level='senior' AND id=ANY($1::text[]))", [[...clubs]]);
       await client.query('COMMIT');
       const catalog: Catalog = { version: version.rows[0].version, selectionIds: new Set(), playerIds: new Set(), links: new Map(), labels: new Map() };
-      for (const e of entities.rows) { (e.kind === 'player' ? catalog.playerIds : catalog.selectionIds).add(e.id); catalog.labels!.set(e.id, e.name); }
-      for (const c of connections.rows) { const links = catalog.links.get(c.player_id) ?? new Set<string>(); links.add(c.selection_id); catalog.links.set(c.player_id, links); }
+      const selections = new Set<string>();
+      for (const c of connections.rows) {
+        const links = catalog.links.get(c.player_id) ?? new Set<string>();
+        links.add(c.selection_id); catalog.links.set(c.player_id, links);
+        catalog.playerIds.add(c.player_id);
+        selections.add(c.selection_id);
+      }
+      for (const e of entities.rows) {
+        catalog.labels!.set(e.id, e.name);
+        if (e.kind !== 'player' && selections.has(e.id)) catalog.selectionIds.add(e.id);
+      }
       return catalog;
     } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   }

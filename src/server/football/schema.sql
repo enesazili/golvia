@@ -69,11 +69,21 @@ CREATE TABLE IF NOT EXISTS football_import_batch (
   imported_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE OR REPLACE VIEW football_link AS
- SELECT DISTINCT c.player_id, CASE WHEN t.kind='national_team' THEN t.country_id ELSE t.id END AS selection_id
- FROM football_career c JOIN football_entity t ON t.id=c.team_id
- JOIN football_source fs ON fs.id=c.source_id AND fs.license='CC0-1.0'
- JOIN football_source_clearance s ON s.source_id=c.source_id AND s.status='cleared'
- WHERE c.verified AND c.appeared AND t.level='senior' AND t.kind IN ('club','national_team');
+-- The live link is a join of tiny gate tables over a growing career table.
+-- Materialising the cleared CC0 career set first keeps the planner on hash
+-- joins; joining the gate tables directly made it walk every clearance row
+-- against every career (millions of comparisons) once the pool passed ~30k.
+WITH live AS MATERIALIZED (
+  SELECT c.player_id, c.team_id
+  FROM football_career c
+  WHERE c.verified AND c.appeared
+    AND c.source_id IN (SELECT source_id FROM football_source_clearance WHERE status='cleared')
+    AND EXISTS (SELECT 1 FROM football_source fs WHERE fs.id=c.source_id AND fs.license='CC0-1.0')
+)
+SELECT DISTINCT l.player_id,
+  CASE WHEN t.kind='national_team' THEN t.country_id ELSE t.id END AS selection_id
+FROM live l JOIN football_entity t ON t.id=l.team_id
+WHERE t.level='senior' AND t.kind IN ('club','national_team');
 
 CREATE TABLE IF NOT EXISTS football_review (
   career_id text PRIMARY KEY REFERENCES football_career(id),

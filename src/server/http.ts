@@ -6,7 +6,9 @@ export function json(data: unknown, status = 200, headers: Record<string, string
 }
 export function failure(error: unknown) {
   if (error instanceof SessionError) return json({ error: error.message }, error.status);
-  console.error('Golvia request failed', { kind: error instanceof Error ? error.name : 'unknown' });
+  const detail = error && typeof error === 'object' ? error as { name?: string; code?: string; message?: string } : {};
+  const message = detail.message?.replace(/postgres(?:ql)?:\/\/\S+/gi, '[db-url]').slice(0, 300);
+  console.error('Golvia request failed', { kind: error instanceof Error ? error.name : 'unknown', code: detail.code, message });
   return json({ error: 'Sunucuya şu anda erişilemiyor.' }, 503);
 }
 export async function body(request: Request, limit = 2048): Promise<Record<string, unknown>> {
