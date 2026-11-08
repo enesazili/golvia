@@ -7,6 +7,8 @@ import { MatchService, SessionError } from '../src/server/game/service.ts';
 import { Matchmaking } from '../src/server/matchmaking.ts';
 import { createSocketServer } from '../src/server/socketServer.ts';
 import type { Competition } from '../src/server/competitive/repository.ts';
+import { guestName } from '../src/lib/guest.ts';
+import { acceptsTerms, TERMS_VERSION } from '../src/lib/legal.ts';
 
 class MemoryCompetition implements Competition {
   starts: string[] = []; completed: string[] = []; cancelled: string[] = []; fail = false;
@@ -72,6 +74,26 @@ test('ranked queue rejects guests and duplicate account sockets; casual queue st
   await game.matching.enqueue('b', 'ranked'); assert.ok(game.id());
   assert.equal(game.store.starts.length, 1);
   await game.matching.dequeue('a'); assert.equal(game.store.cancelled.length, 1); assert.equal(game.store.completed.length, 0);
+});
+test('guests match only guests and one server player cannot own overlapping matches', async () => {
+  const game = setup();
+  const found: string[] = [];
+  game.matching.register('guest-a', { name: 'Deniz', notify: (event, data) => { if (event === 'matchFound') found.push((data as { matchId: string }).matchId); } });
+  game.matching.register('guest-b', { name: 'Ece', notify: (event, data) => { if (event === 'matchFound') found.push((data as { matchId: string }).matchId); } });
+  await game.matching.enqueue('a', 'casual');
+  await game.matching.enqueue('guest-a', 'casual'); assert.equal(found.length, 0);
+  await game.matching.enqueue('guest-b', 'casual');
+  assert.equal(found.length, 2); assert.equal(found[0], found[1]);
+  await game.matching.enqueue('guest-a', 'casual'); assert.equal(found.length, 2);
+  assert.deepEqual([game.store.starts, game.store.completed], [[], []]);
+  await game.matching.dequeue('guest-a'); await game.matching.dequeue('a');
+});
+test('guest names and current terms are validated without accepting markup or forged versions', () => {
+  assert.equal(guestName('  Çağrı  10 '), 'Çağrı 10');
+  for (const name of ['', '<img src=x>', 'a', 'x'.repeat(25), 'Ali\u202eAdmin']) assert.equal(guestName(name), null);
+  assert.ok(acceptsTerms({ termsAccepted: true, termsVersion: TERMS_VERSION }));
+  assert.equal(acceptsTerms({ termsAccepted: 'true', termsVersion: TERMS_VERSION }), false);
+  assert.equal(acceptsTerms({ termsAccepted: true, termsVersion: 'old' }), false);
 });
 test('server finalizes ranked result once despite parallel polling and repeated actions', async () => {
   const game = setup(); await game.matching.enqueue('a', 'ranked'); await game.matching.enqueue('b', 'ranked');

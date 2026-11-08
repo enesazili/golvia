@@ -103,12 +103,16 @@ test('first correct answer scores once and includes server-provided answer ident
   assert.deepEqual(m.view(0, 7800).score, [1, 0]); assert.equal(m.view(1, 7800).outcome?.answerName, 'Correct Player');
   assert.equal(send(m, 1, 'answer', 'correct', 7801).code, 'wrong-phase');
 });
-test('wrong answer consumes one attempt; both wrong end immediately', () => {
+test('wrong answers allow retries until the deadline, with server throttling', () => {
   const m = new Match(catalog, 0); pair(m);
-  assert.equal(send(m, 0, 'answer', 'wrong', 7800).accepted, true);
-  assert.equal(send(m, 0, 'answer', 'correct', 7801).code, 'already-answered');
+  const wrong = send(m, 0, 'answer', 'wrong', 7800, 'wrong-request');
+  assert.equal(wrong.accepted, true);
+  assert.deepEqual(send(m, 0, 'answer', 'wrong', 8100, 'wrong-request'), wrong);
+  assert.equal(send(m, 0, 'answer', 'correct', 7801).code, 'answer-too-fast');
   assert.equal(send(m, 1, 'answer', 'wrong', 7802).accepted, true);
-  assert.equal(m.view(0, 7802).outcome?.reason, 'both-wrong'); assert.deepEqual(m.view(0, 7802).score, [0, 0]);
+  assert.equal(m.view(0, 7802).phase, 'answer'); assert.deepEqual(m.view(0, 7802).score, [0, 0]);
+  assert.equal(send(m, 0, 'answer', 'correct', 8150).accepted, true);
+  assert.deepEqual(m.view(0, 8150).score, [1, 0]);
 });
 test('answer at the exact deadline is late and result persists for reading', () => {
   const m = new Match(catalog, 0); pair(m);

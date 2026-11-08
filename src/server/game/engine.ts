@@ -3,7 +3,7 @@ export type Seat = 0 | 1;
 export type Phase = 'ready' | 'countdown' | 'select' | 'reveal' | 'answer' | 'result' | 'finished';
 export type Action = { requestId: string; round: number; attempt: number; type: 'ready' | 'choose' | 'answer'; id: string };
 export type Receipt = { accepted: boolean; code: string; revision: number };
-export type Outcome = { round: number; reason: 'correct' | 'both-wrong' | 'timeout' | 'missing-selection' | 'no_selection' | 'same-selection' | 'afk'; winner: Seat | null; choices: [string | null, string | null]; answerId?: string; answerName?: string };
+export type Outcome = { round: number; reason: 'correct' | 'timeout' | 'missing-selection' | 'no_selection' | 'same-selection' | 'afk'; winner: Seat | null; choices: [string | null, string | null]; answerId?: string; answerName?: string };
 export type View = { phase: Phase; round: number; attempt: number; revision: number; score: [number, number]; choices: [string | null, string | null]; ready: [boolean, boolean]; answered: [boolean, boolean]; deadline: number; serverNow: number; winner: Seat | null; outcome: Outcome | null; datasetVersion: string };
 type State = Omit<View, 'serverNow' | 'datasetVersion'>;
 const READY_MS = 30_000, COUNTDOWN_MS = 3000, SELECT_MS = 3000, REVEAL_MS = 1800, ANSWER_MS = 15_000, RESULT_MS = 5000;
@@ -12,6 +12,7 @@ const READY_MS = 30_000, COUNTDOWN_MS = 3000, SELECT_MS = 3000, REVEAL_MS = 1800
 export class Match {
   private state: State;
   private readonly receipts = new Map<string, { fingerprint: string; receipt: Receipt }>();
+  private readonly lastAnswer: [number, number] = [-Infinity, -Infinity];
   constructor(private readonly catalog: Catalog, startedAt: number) {
     this.state = { phase: 'ready', round: 1, attempt: 1, revision: 1, score: [0, 0], choices: [null, null], ready: [false, false], answered: [false, false], deadline: startedAt + READY_MS, winner: null, outcome: null };
   }
@@ -72,15 +73,16 @@ export class Match {
       else { s.choices[seat] = action.id; s.revision++; }
     } else if (action.type === 'answer') {
       if (s.phase !== 'answer') code = 'wrong-phase';
-      else if (s.answered[seat]) code = 'already-answered';
+      else if (now - this.lastAnswer[seat] < 350) code = 'answer-too-fast';
       else if (!this.catalog.playerIds.has(action.id)) code = 'unknown-player';
       else {
+        this.lastAnswer[seat] = now;
         s.answered[seat] = true; s.revision++;
         if (connects(this.catalog, action.id, s.choices[0]!, s.choices[1]!)) this.finish('correct', seat, now, action.id);
-        else if (s.answered.every(Boolean)) this.finish('both-wrong', null, now);
+        else code = 'incorrect';
       }
     } else code = 'invalid-action';
-    const receipt = { accepted: code === 'ok', code, revision: s.revision };
+    const receipt = { accepted: code === 'ok' || code === 'incorrect', code, revision: s.revision };
     if (code !== 'request-limit') this.receipts.set(key, { fingerprint, receipt });
     return { ...receipt };
   }

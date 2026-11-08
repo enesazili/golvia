@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { once } from 'node:events';
 import { Pool } from 'pg';
+import { TERMS_VERSION } from '../src/lib/legal.ts';
 
 function mailSink() {
   const messages: string[] = [];
@@ -97,8 +98,9 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
   process.env.TRUST_PROXY = 'true';
   const { getAuth, closeAuth } = await import('../src/server/auth.ts');
   const { socketAccount } = await import('../src/server/socketAuth.ts');
-  const auth = getAuth();
   const db = new Pool({ connectionString: url });
+  await db.query(await readFile(new URL('../src/server/auth/schema.sql', import.meta.url), 'utf8'));
+  const auth = getAuth();
   const base = 'https://golvia.test';
   const post = (path: string, body: object, cookie?: string, ip = '127.0.0.1') => auth.handler(new Request(`${base}/api/auth${path}`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json', 'x-real-ip': ip, ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) }));
   const get = (path: string, cookie?: string) => auth.handler(new Request(`${base}/api/auth${path}`, { headers: cookie ? { cookie } : {} }));
@@ -106,8 +108,11 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
   const email = `player-${unique}@golvia.test`, otherEmail = `other-${unique}@golvia.test`, username = `player${unique}`, password = `Safe-${randomBytes(18).toString('hex')}`;
   const nextPassword = `New-${randomBytes(18).toString('hex')}`;
   try {
-    const signup = await post('/sign-up/email', { name: username, username, email, password });
-    assert.equal(signup.status, 200);
+    assert.notEqual((await post('/sign-up/email', { name: username, username, email, password })).status, 200, 'server rejects missing terms acceptance');
+    const signup = await post('/sign-up/email', { name: username, username, email, password, acceptance: { termsAccepted: true, termsVersion: TERMS_VERSION } });
+    assert.equal(signup.status, 200, await signup.text());
+    const acceptance = (await db.query('SELECT "termsVersion","termsAcceptedAt" FROM golvia_auth."user" WHERE email=$1', [email])).rows[0];
+    assert.equal(acceptance.termsVersion, TERMS_VERSION); assert.ok(acceptance.termsAcceptedAt instanceof Date);
     assert.equal(sink.messages.length, 1);
     assert.notEqual((await post('/sign-in/email', { email, password })).status, 200, 'unverified email must not sign in');
     const verification = await auth.handler(new Request(emailLink(sink.messages[0])));
@@ -122,7 +127,7 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
     const signedIn = (await session.json()).user;
     assert.equal(signedIn.email, email);
     assert.equal(await socketAccount(cookie), signedIn.id);
-    const duplicate = await post('/sign-up/email', { name: username, username, email: `other-${unique}@golvia.test`, password });
+    const duplicate = await post('/sign-up/email', { name: username, username, email: `other-${unique}@golvia.test`, password, acceptance: { termsAccepted: true, termsVersion: TERMS_VERSION } });
     assert.notEqual(duplicate.status, 200, 'username must remain unique');
     assert.equal((await db.query('SELECT count(*) FROM golvia_auth."user" WHERE username=$1', [username])).rows[0].count, '1');
     const reset = await post('/request-password-reset', { email, redirectTo: `${base}/hesap` });
@@ -142,16 +147,17 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
     assert.equal(await socketAccount(newCookie), null);
     const finalLogin = await post('/sign-in/email', { email, password: nextPassword }); assert.equal(finalLogin.status, 200);
     const finalCookie = (finalLogin.headers.get('set-cookie') ?? '').split(';')[0];
-    const secondSignup = await post('/sign-up/email', { name: `guest${unique}`, username: `guest${unique}`, email: otherEmail, password });
+    const secondSignup = await post('/sign-up/email', { name: `guest${unique}`, username: `guest${unique}`, email: otherEmail, password, acceptance: { termsAccepted: true, termsVersion: TERMS_VERSION } });
     assert.equal(secondSignup.status, 200);
     await auth.handler(new Request(emailLink(sink.messages.at(-1)!)));
-    const secondLogin = await post('/sign-in/email', { email: otherEmail, password }, undefined, '127.0.0.2'); assert.equal(secondLogin.status, 200);
+    const secondLogin = await post('/sign-in/email', { email: otherEmail, password, acceptance: { termsAccepted: true, termsVersion: TERMS_VERSION } }, undefined, '127.0.0.2'); assert.equal(secondLogin.status, 200);
     const secondCookie = (secondLogin.headers.get('set-cookie') ?? '').split(';')[0];
     const firstUser = (await (await get('/get-session', finalCookie)).json()).user;
     const secondUser = (await (await get('/get-session', secondCookie)).json()).user;
     assert.notEqual(firstUser.id, secondUser.id);
     assert.equal(secondUser.email, otherEmail);
     await rankedRoundTrip(url, [finalCookie, secondCookie], [firstUser.id, secondUser.id]);
+    assert.notEqual((await post('/delete-user', {}, finalCookie)).status, 200, 'credential accounts require a password for deletion');
     assert.equal((await post('/delete-user', { password: nextPassword, userId: secondUser.id }, finalCookie)).status, 200);
     assert.equal((await db.query('SELECT count(*) FROM golvia_auth."user" WHERE email=$1', [email])).rows[0].count, '0');
     assert.equal((await (await get('/get-session', finalCookie)).json())?.user ?? null, null);

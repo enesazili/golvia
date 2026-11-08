@@ -2,8 +2,8 @@ import { MatchService, SessionError } from './game/service.ts';
 import type { Action, View } from './game/engine.ts';
 import type { Competition } from './competitive/repository.ts';
 import type { MatchKind, RankedResult } from '../lib/rating.ts';
-type Peer = { notify: (event: string, data: unknown) => void; accountId?: string | null };
-type Pair = { players: [string, string]; tokens: [string, string]; kind: MatchKind; started: boolean; quitting: Set<string>; result?: RankedResult; pendingView?: View; queue: Promise<unknown> };
+type Peer = { notify: (event: string, data: unknown) => void; accountId?: string | null; name?: string };
+type Pair = { players: [string, string]; names: [string, string]; tokens: [string, string]; kind: MatchKind; started: boolean; quitting: Set<string>; result?: RankedResult; pendingView?: View; queue: Promise<unknown> };
 /** One socket process owns the queue and credentials. The database owns ranked results. */
 export class Matchmaking {
   private peers = new Map<string, Peer>();
@@ -26,7 +26,7 @@ export class Matchmaking {
     const matchId = this.memberships.get(playerId), pair = matchId ? this.matches.get(matchId) : undefined;
     if (matchId && pair) {
       const seat = pair.players.indexOf(playerId) as 0 | 1;
-      peer.notify('matchFound', { matchId, opponentId: pair.players[1 - seat], seat, kind: pair.kind });
+      peer.notify('matchFound', { matchId, opponentId: pair.players[1 - seat], opponentName: pair.names[1 - seat], seat, kind: pair.kind });
       if (pair.result) peer.notify('rankedResult', pair.result);
       const opponentDeadline = this.disconnectedUntil.get(pair.players[1 - seat]);
       if (opponentDeadline) peer.notify('opponentDisconnected', { matchId, graceMs: Math.max(0, opponentDeadline - Date.now()), deadline: opponentDeadline });
@@ -36,6 +36,10 @@ export class Matchmaking {
     const recent = this.recentResults.get(playerId);
     if (recent && recent.expires > Date.now()) peer.notify('rankedResult', recent.result);
     return false;
+  }
+  name(playerId: string, name: string) {
+    const peer = this.peers.get(playerId);
+    if (peer && !this.memberships.has(playerId) && !this.waiting.has(playerId)) peer.name = name;
   }
   private releaseRanked(playerId: string) {
     for (const [account, owner] of this.rankedOwners) if (owner === playerId) this.rankedOwners.delete(account);
@@ -51,7 +55,7 @@ export class Matchmaking {
         if (this.rankedOwners.has(account) && this.rankedOwners.get(account) !== playerId) throw new SessionError(409, 'Hesabın zaten rekabetçi kuyrukta veya maçta.');
         this.rankedOwners.set(account, playerId);
       }
-      const opponent = [...this.waiting].find(([, mode]) => mode === kind)?.[0];
+      const opponent = [...this.waiting].find(([id, mode]) => mode === kind && (kind !== 'casual' || !!this.peers.get(id)?.accountId === !!account))?.[0];
       if (!opponent) { this.waiting.set(playerId, kind); return; }
       const opponentEpoch = this.epochs.get(opponent) ?? 0;
       this.waiting.delete(opponent);
@@ -76,10 +80,11 @@ export class Matchmaking {
         }
         const players: [string, string] = [opponent, playerId];
         const matchId = session.id;
-        this.matches.set(matchId, { players, tokens: session.tokens, kind, started: false, quitting: new Set(), queue: Promise.resolve() });
+        const names = players.map(id => this.peers.get(id)?.name ?? 'Oyuncu') as [string, string];
+        this.matches.set(matchId, { players, names, tokens: session.tokens, kind, started: false, quitting: new Set(), queue: Promise.resolve() });
         players.forEach((id, seat) => {
           this.memberships.set(id, matchId);
-          this.peers.get(id)?.notify('matchFound', { matchId, opponentId: players[1 - seat], seat, kind });
+          this.peers.get(id)?.notify('matchFound', { matchId, opponentId: players[1 - seat], opponentName: names[1 - seat], seat, kind });
         });
       } catch (error) {
         if (session) {

@@ -3,79 +3,72 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authClient } from '@/lib/auth-client';
-
-type User = { name: string; username?: string | null; email: string; emailVerified: boolean };
-export function AccountClient({ available, mailReady, user, resetToken }: { available: boolean; mailReady: boolean; user: User | null; resetToken: string }) {
+import { TERMS_VERSION } from '@/lib/legal';
+type User = { name: string; username?: string | null; email: string; emailVerified: boolean; termsAccepted: boolean };
+export function AccountClient({ available, mailReady, googleReady, user, resetToken, authError = false }: { available: boolean; mailReady: boolean; googleReady: boolean; user: User | null; resetToken: string; authError?: boolean }) {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(resetToken ? 'reset' : 'login');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [token, setToken] = useState(resetToken);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [mode, setMode] = useState<'continue' | 'forgot' | 'reset'>(resetToken ? 'reset' : 'continue');
+  const [emailOpen, setEmailOpen] = useState(!!resetToken), [busy, setBusy] = useState(false), [message, setMessage] = useState(authError ? 'Google girişi tamamlanamadı. Yeniden dene veya e-posta kullan.' : '');
+  const [email, setEmail] = useState(''), [password, setPassword] = useState(''), [username, setUsername] = useState('');
+  const [token, setToken] = useState(resetToken), [accepted, setAccepted] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false), [deletePassword, setDeletePassword] = useState(''), [deleteConfirmed, setDeleteConfirmed] = useState(false);
   useEffect(() => {
     if (!resetToken) return;
-    // Keep the one-time token out of the address bar and same-origin referrers after it has been read.
-    const url = new URL(window.location.href);
-    url.searchParams.delete('token');
+    const url = new URL(window.location.href); url.searchParams.delete('token');
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   }, [resetToken]);
+  async function recordTerms() {
+    const response = await fetch('/api/account/terms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ termsAccepted: true, termsVersion: TERMS_VERSION }) });
+    if (!response.ok) throw new Error('Koşul kabulü kaydedilemedi. Tekrar dene.');
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (busy || !available) return;
     setBusy(true); setMessage('');
     try {
-      if (mode === 'login') {
+      if (mode === 'continue') {
+        if (!accepted) throw new Error('Kullanım koşullarını onayla.');
         const result = await authClient.signIn.email({ email, password });
-        if (result.error) throw new Error('E-posta, parola veya doğrulama durumunu kontrol et.');
-        router.refresh();
-      } else if (mode === 'register') {
-        if (!mailReady) throw new Error('Hesap açma henüz kullanılamıyor.');
-        const result = await authClient.signUp.email({ name: username, username, email, password });
-        if (result.error) throw new Error('Kayıt tamamlanamadı. Bilgileri kontrol et.');
-        setMessage('Uygunsa doğrulama bağlantısı e-posta adresine gönderilir.');
+        if (!result.error) { await recordTerms(); router.refresh(); }
+        else if (username.trim() && mailReady) {
+          const signup = await fetch('/api/auth/sign-up/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: username.trim(), username: username.trim(), email, password, acceptance: { termsAccepted: true, termsVersion: TERMS_VERSION } }) });
+          if (!signup.ok) throw new Error('Bilgileri veya e-posta doğrulamanı kontrol et.');
+          setMessage('Doğrulama bağlantısı için e-postanı kontrol et.');
+        } else throw new Error('E-posta, parola veya doğrulamanı kontrol et. Yeniysen oyuncu adını da ekle.');
       } else if (mode === 'forgot') {
-        if (!mailReady) throw new Error('Parola sıfırlama henüz kullanılamıyor.');
-        await authClient.requestPasswordReset({ email, redirectTo: `${window.location.origin}/hesap` });
-        setMessage('Bu adrese kayıtlı hesap varsa sıfırlama bağlantısı gönderilir.');
+        const result = await authClient.requestPasswordReset({ email, redirectTo: `${window.location.origin}/hesap` });
+        if (result.error) throw new Error('Bağlantı gönderilemedi. Birazdan tekrar dene.');
+        setMessage('Hesap varsa sıfırlama bağlantısı gönderildi.');
       } else {
-        if (!token) throw new Error('Sıfırlama bağlantısı geçersiz.');
         const result = await authClient.resetPassword({ token, newPassword: password });
         if (result.error) throw new Error('Bağlantı geçersiz veya süresi dolmuş.');
-        setToken(''); setMode('login'); setMessage('Parolan güncellendi. Yeniden giriş yap.');
+        setToken(''); setMode('continue'); setMessage('Parolan güncellendi. Giriş yapabilirsin.');
       }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'İşlem tamamlanamadı.'); }
     finally { setBusy(false); }
   }
-  async function signOut() { setBusy(true); try { await authClient.signOut(); router.refresh(); } finally { setBusy(false); } }
-  async function revokeOthers() { setBusy(true); try { const result = await authClient.revokeOtherSessions(); setMessage(result.error ? 'Diğer oturumlar sonlandırılamadı.' : 'Diğer oturumlar sonlandırıldı.'); } finally { setBusy(false); } }
-  async function deleteAccount(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (busy || !deleteConfirmed || !deletePassword) return;
+  async function google() {
+    if (!accepted || !googleReady || busy) return;
+    setBusy(true); setMessage('');
+    try { const result = await authClient.signIn.social({ provider: 'google', callbackURL: '/hesap', errorCallbackURL: '/hesap?authError=1', additionalData: { termsAccepted: true, termsVersion: TERMS_VERSION } }); if (result.error) throw new Error('Google bağlantısı kurulamadı.'); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'Google bağlantısı kurulamadı.'); setBusy(false); }
+  }
+  async function accountAction(action: 'out' | 'revoke' | 'terms') {
     setBusy(true); setMessage('');
     try {
-      const result = await authClient.deleteUser({ password: deletePassword });
-      if (result.error) throw new Error('Hesap silinemedi. Parolanı kontrol et.');
-      setDeletePassword(''); router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Hesap silinemedi.'); }
+      if (action === 'terms') { await recordTerms(); router.refresh(); }
+      else if (action === 'out') { const result = await authClient.signOut(); if (result.error) throw new Error('Çıkış yapılamadı.'); router.refresh(); }
+      else { const result = await authClient.revokeOtherSessions(); if (result.error) throw new Error('Oturumlar kapatılamadı.'); setMessage('Diğer oturumlar kapatıldı.'); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'İşlem tamamlanamadı.'); }
     finally { setBusy(false); }
   }
-  if (user) return <section className="account-card"><span className="eyebrow">OYUNCU PROFİLİ</span><h2>{user.username || user.name}</h2><p>E-posta: {user.email}</p><p>Durum: {user.emailVerified ? 'Doğrulanmış' : 'E-posta doğrulaması bekleniyor'}</p><div className="account-actions"><Link className="button" href="/oyun/3-2-1">Maça dön</Link><button className="text-link" disabled={busy} onClick={() => void revokeOthers()}>Diğer oturumları kapat</button><button className="text-link" disabled={busy} onClick={() => void signOut()}>Çıkış yap</button></div><p role="status" aria-live="polite">{message}</p><small>Doğrulanmış hesabınla rekabetçi maç oynayabilir, ELO ve lig ilerlemeni izleyebilirsin.</small><button type="button" className="text-link account-delete-trigger" onClick={() => setDeleteOpen(value => !value)}>{deleteOpen ? 'Hesap silmeyi kapat' : 'Hesabımı sil'}</button>{deleteOpen && <form className="account-delete" onSubmit={event => void deleteAccount(event)}><p>Bu işlem hesabını ve oturumlarını kalıcı olarak siler. Açık maç bağlantın sona erebilir.</p><label>Parolan<input required type="password" autoComplete="current-password" value={deletePassword} onChange={event => setDeletePassword(event.target.value)} /></label><label className="account-confirm"><input type="checkbox" checked={deleteConfirmed} onChange={event => setDeleteConfirmed(event.target.checked)} /> Hesabımın kalıcı olarak silinmesini istiyorum.</label><button type="submit" disabled={busy || !deleteConfirmed || !deletePassword}>Hesabı kalıcı olarak sil</button></form>}</section>;
-  return <section className="account-card"><div className="account-tabs" aria-label="Hesap işlemleri"><button type="button" aria-pressed={mode === 'login'} onClick={() => { setMode('login'); setMessage(''); }}>Giriş</button><button type="button" aria-pressed={mode === 'register'} onClick={() => { setMode('register'); setMessage(''); }}>Kayıt</button></div>
-    {!available && <p role="status">Hesap hizmeti şu anda kullanılamıyor. Misafir maçına devam edebilirsin.</p>}
-    {available && !mailReady && mode !== 'login' && <p role="status">E-posta hizmeti kurulana kadar kayıt ve parola sıfırlama kapalı.</p>}
-    <h2>{mode === 'login' ? 'Tekrar hoş geldin.' : mode === 'register' ? 'Sahaya adını yaz.' : mode === 'forgot' ? 'Parolanı yenile.' : 'Yeni parola.'}</h2>
-    <form onSubmit={event => void submit(event)}>
-      {mode === 'register' && <label>Kullanıcı adı<input required minLength={3} maxLength={24} autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} /></label>}
-      {mode !== 'reset' && <label>E-posta<input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>}
-      {mode !== 'forgot' && <label>Parola<input required type="password" minLength={12} maxLength={128} autoComplete={mode === 'register' ? 'new-password' : mode === 'reset' ? 'new-password' : 'current-password'} value={password} onChange={event => setPassword(event.target.value)} /></label>}
-      <button className="button" type="submit" disabled={busy || !available || (!mailReady && mode !== 'login')}>{busy ? 'İşleniyor…' : mode === 'login' ? 'Giriş yap' : mode === 'register' ? 'Hesap oluştur' : mode === 'forgot' ? 'Bağlantı gönder' : 'Parolayı kaydet'}</button>
-    </form>
-    <p role="status" aria-live="polite">{message}</p>
-    {mode === 'login' && <button className="text-link" onClick={() => setMode('forgot')}>Parolamı unuttum</button>}
-    {(mode === 'forgot' || mode === 'reset') && <button className="text-link" onClick={() => setMode('login')}>Girişe dön</button>}
-    <Link className="text-link" href="/oyun/3-2-1">Misafir oyna ↗</Link>
-  </section>;
+  async function deleteAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (busy || !deleteConfirmed) return;
+    setBusy(true); setMessage('');
+    try { const result = await authClient.deleteUser(deletePassword ? { password: deletePassword } : {}); if (result.error) throw new Error('Silme doğrulanamadı. Yeniden giriş yap veya parolanı kontrol et.'); router.refresh(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'Hesap silinemedi.'); }
+    finally { setBusy(false); }
+  }
+  const acceptance = <><label className="check-label"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)}/><span><Link href="/yasal/kosullar" target="_blank">Kullanım Koşulları</Link>’nı kabul ediyorum.</span></label><p className="fine-print"><Link href="/yasal/kvkk" target="_blank">KVKK Aydınlatma Metni</Link> · <Link href="/yasal/gizlilik" target="_blank">Gizlilik</Link></p></>;
+  if (user) return <section className="account-card"><span className="profile-monogram" aria-hidden="true">{user.name.slice(0, 1).toLocaleUpperCase('tr-TR')}</span><h2>{user.username || user.name}</h2><p>{user.email}</p><span className="profile-status"><span className="online-dot"/>{user.emailVerified ? 'Doğrulanmış hesap' : 'E-posta doğrulaması bekleniyor'}</span>{!user.termsAccepted && <form onSubmit={event => { event.preventDefault(); if (accepted) void accountAction('terms'); }}>{acceptance}<button className="button" disabled={!accepted || busy}>Koşulları onayla</button></form>}<Link className="button" href="/">Oyuna dön <span>↗</span></Link>{!user.emailVerified && mailReady && <button className="quiet-button" disabled={busy} onClick={() => { setBusy(true); void authClient.sendVerificationEmail({ email: user.email, callbackURL: '/' }).then(result => setMessage(result.error ? 'Gönderilemedi. Tekrar dene.' : 'Doğrulama e-postası gönderildi.')).finally(() => setBusy(false)); }}>Doğrulama e-postasını yeniden gönder</button>}<div className="account-actions"><button disabled={busy} onClick={() => void accountAction('revoke')}>Diğer oturumları kapat</button><button disabled={busy} onClick={() => void accountAction('out')}>Çıkış yap</button></div><Link className="text-link" href="/api/account/export" prefetch={false}>Verilerimi indir ↗</Link><button className="quiet-button account-delete-trigger" onClick={() => setDeleteOpen(value => !value)}>{deleteOpen ? 'Vazgeç' : 'Hesabımı sil'}</button>{deleteOpen && <form className="account-delete" onSubmit={event => void deleteAccount(event)}><p>Hesabın, oturumların ve giriş bağlantıların silinir. Maç kayıtlarının kapsamı <Link className="text-link" href="/yasal/basvuru">silme metninde</Link>.</p><label>Parola (e-posta hesabı için)<input type="password" autoComplete="current-password" value={deletePassword} onChange={event => setDeletePassword(event.target.value)}/></label><label className="check-label"><input type="checkbox" checked={deleteConfirmed} onChange={event => setDeleteConfirmed(event.target.checked)}/><span>Hesabımı kalıcı olarak silmek istiyorum.</span></label><button className="danger-button" disabled={busy || !deleteConfirmed}>Hesabı kalıcı olarak sil</button></form>}<p role="status">{message}</p></section>;
+  return <section className="account-card"><h2>{mode === 'continue' ? 'Oyuncu hesabın.' : mode === 'forgot' ? 'Parolanı yenile.' : 'Yeni parolan.'}</h2>{mode === 'continue' && <><button className="button oauth-button" disabled={!available || !googleReady || !accepted || busy} onClick={() => void google()}><span className="google-mark" aria-hidden="true">G</span>Google ile devam et</button>{!googleReady && <p className="fine-print">Google girişi şu anda kullanılamıyor.</p>}<div className="account-divider">veya</div>{!emailOpen && <button className="secondary-button" onClick={() => setEmailOpen(true)}>E-posta ile devam et</button>}</>}{(emailOpen || mode !== 'continue') && <form onSubmit={event => void submit(event)}>{mode !== 'reset' && <label>E-posta<input type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)}/></label>}{mode !== 'forgot' && <label>Parola<input type="password" autoComplete={mode === 'reset' ? 'new-password' : 'current-password'} required minLength={12} maxLength={128} value={password} onChange={event => setPassword(event.target.value)}/></label>}{mode === 'continue' && mailReady && <label>Oyuncu adı <span className="fine-print">Yeni hesap oluşturacaksan ekle.</span><input autoComplete="username" minLength={3} maxLength={24} value={username} onChange={event => setUsername(event.target.value)}/></label>}{mode === 'continue' && acceptance}<button className="button" disabled={busy || !available || mode === 'continue' && !accepted || mode === 'forgot' && !mailReady}>{busy ? 'İşleniyor…' : mode === 'continue' ? 'Devam et' : mode === 'forgot' ? 'Bağlantı gönder' : 'Parolayı kaydet'}<span>↗</span></button></form>}{mode === 'continue' && !emailOpen && acceptance}{!available && <p className="fine-print">Hesap hizmeti şu anda kullanılamıyor. Antrenman ve misafir maçları açık.</p>}<p role="status" aria-live="polite">{message}</p>{mode === 'continue' && emailOpen && <button className="quiet-button" onClick={() => setMode('forgot')}>Parolamı unuttum</button>}{mode !== 'continue' && <button className="quiet-button" onClick={() => setMode('continue')}>Geri dön</button>}<Link className="text-link" href="/">Oyuna dön ↗</Link></section>;
 }

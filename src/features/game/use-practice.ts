@@ -13,6 +13,7 @@ export function usePractice(remote?: RemoteMatch) {
   const [pending, setPending] = useState(false);
   const [retry, setRetry] = useState<Action | null>(null);
   const [remaining, setRemaining] = useState(0);
+  const [feedback, setFeedback] = useState({ key: '', text: '' });
   const [teams, setTeams] = useState<Suggestion[]>([]);
   const [options, setOptions] = useState<Suggestion[]>([]);
   const [optionsKey, setOptionsKey] = useState('');
@@ -95,6 +96,7 @@ export function usePractice(remote?: RemoteMatch) {
   async function start() {
     if (busy.current) return;
     busy.current = true; setPending(true); setError(''); setRetry(null);
+    setFeedback({ key: '', text: '' });
     generation.current++; latest.current = null;
     // Stop the previous polling generation before creating a fresh match.
     setView(null);
@@ -103,6 +105,11 @@ export function usePractice(remote?: RemoteMatch) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       accept(data.view);
+      const action: Action = { type: 'ready', id: 'ready', round: data.view.round, attempt: data.view.attempt, requestId: requestId() };
+      const ready = await fetch('/api/practice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) });
+      const started = await ready.json();
+      if (!ready.ok) throw new Error(started.error ?? 'Maç başlatılamadı.');
+      accept(started.view);
     } catch (e) { setError(e instanceof Error ? e.message : 'Antrenman başlatılamadı.'); }
     finally { busy.current = false; setPending(false); }
   }
@@ -116,11 +123,12 @@ export function usePractice(remote?: RemoteMatch) {
       const data = await response.json();
       if (data.view) accept(data.view, data.ranked);
       if (!response.ok) {
-        const message = data.error ?? ({ 'stale-round': 'Bu tur artık kapandı.', 'already-answered': 'Cevap hakkını kullandın.', 'wrong-phase': 'Bu aşamanın süresi doldu.' }[data.receipt?.code as string] ?? 'Eylem kabul edilmedi.');
+        const message = data.error ?? ({ 'stale-round': 'Bu tur artık kapandı.', 'answer-too-fast': 'Bir an bekle ve tekrar dene.', 'wrong-phase': 'Bu aşamanın süresi doldu.' }[data.receipt?.code as string] ?? 'Eylem kabul edilmedi.');
         if (response.status < 500) { setRetry(null); setError(message); return; }
         throw new Error(message);
       }
       setRetry(null);
+      if (action.type === 'answer' && data.receipt?.code === 'incorrect') { setFeedback({ key: phaseKey, text: 'Olmadı. Tekrar dene.' }); setQueryState({ key: phaseKey, value: '' }); }
     } catch (e) { setRetry(action); setError(e instanceof Error ? e.message : 'Eylem gönderilemedi.'); }
     finally { busy.current = false; setPending(false); }
   }
@@ -130,5 +138,5 @@ export function usePractice(remote?: RemoteMatch) {
     try { void send({ type, id, round: current.round, attempt: current.attempt, requestId: requestId() }); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Eylem kimliği oluşturulamadı.'); }
   }
-  return { view, ranked, error, pending, remaining, teams, options: query.trim().length >= 2 && optionsKey === `${kind}:${query}` ? options : [], searching: query.trim().length >= 2 && (searching || optionsKey !== `${kind}:${query}`), query, setQuery: (value: string) => setQueryState({ key: phaseKey, value }), start, act, retry: retry ? () => void send(retry) : null };
+  return { view, ranked, error, feedback: feedback.key === phaseKey ? feedback.text : '', pending, remaining, teams, options: query.trim().length >= 2 && optionsKey === `${kind}:${query}` ? options : [], searching: query.trim().length >= 2 && (searching || optionsKey !== `${kind}:${query}`), query, setQuery: (value: string) => setQueryState({ key: phaseKey, value }), start, act, retry: retry ? () => void send(retry) : null };
 }

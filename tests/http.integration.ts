@@ -10,6 +10,9 @@ test('competitive HTTP reads validate pagination, protect profiles and expose no
   assert.equal((await fetch(`${origin}/api/competitive?mode=invalid`)).status, 400);
   assert.equal((await fetch(`${origin}/api/competitive?page=-1`)).status, 400);
   assert.equal((await fetch(`${origin}/api/competitive/me`)).status, 401);
+  assert.equal((await fetch(`${origin}/api/account/export`)).status, 401);
+  const { TERMS_VERSION } = await import('../src/lib/legal.ts');
+  assert.equal((await fetch(`${origin}/api/account/terms`, { method: 'POST', headers: { origin: origin!, 'content-type': 'application/json' }, body: JSON.stringify({ termsAccepted: true, termsVersion: TERMS_VERSION }) })).status, 401);
   assert.equal((await fetch(`${origin}/api/competitive`, { method: 'POST', body: JSON.stringify({ elo: 9999 }) })).status, 405);
 });
 test('HTTP training contract: identity, secrecy, validation, retries and database search', async () => {
@@ -41,6 +44,10 @@ test('HTTP training contract: identity, secrecy, validation, retries and databas
   const end = Date.now() + 7000;
   while (view.phase !== 'answer' && Date.now() < end) { await delay(75); view = (await (await fetch(`${origin}/api/practice`, { headers: { cookie } })).json()).view; }
   assert.equal(view.phase, 'answer'); assert.equal(view.choices[0], 'Q45'); assert.ok(view.choices[1]);
+  const wrong = { ...base, type: 'answer', id: 'Q615', requestId: 'wrong' };
+  const incorrect = await post(wrong, cookie); assert.equal(incorrect.status, 200);
+  const feedback = await incorrect.json(); assert.equal(feedback.receipt.code, 'incorrect'); assert.equal(feedback.view.phase, 'answer');
+  await delay(400);
   const answer = { ...base, type: 'answer', id: view.choices[1] === 'Q7156' ? 'Q483145' : 'Q11571', requestId: 'answer' };
   const results = await Promise.all(Array.from({ length: 8 }, async () => (await post(answer, cookie)).json()));
   for (const result of results) { assert.deepEqual(result.view.score, [1, 0]); assert.deepEqual(result.receipt, results[0].receipt); }

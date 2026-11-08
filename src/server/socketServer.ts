@@ -10,9 +10,11 @@ import { FootballRepository } from './football/repository.ts';
 import { PostgresMatchJournal } from './matchJournal.ts';
 import { parseAction } from './http.ts';
 import { socketOrigins } from './config.ts';
-import { socketAccount } from './socketAuth.ts';
+import { socketIdentity } from './socketAuth.ts';
+import { guestName } from '../lib/guest.ts';
+import { acceptsTerms, TERMS_VERSION } from '../lib/legal.ts';
 import { closeAuth } from './auth.ts';
-type AccountResolver = (cookie?: string) => Promise<string | null>;
+type AccountResolver = (cookie?: string) => Promise<string | { id: string; name: string } | null>;
 export type SocketLimits = {
   /** Concurrent connections accepted by this process. */
   maxConnections: number;
@@ -37,7 +39,7 @@ function clientAddress(socket: { handshake: { address?: string; headers: Record<
   return socket.handshake.address || 'unknown';
 }
 
-export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketAccount, limits: Partial<SocketLimits> = {},fallbackHandler?: RequestListener, competition?: Competition) {
+export function createSocketServer(service: MatchService, readiness: () => Promise<boolean> = async () => true, resolveAccount: AccountResolver = socketIdentity, limits: Partial<SocketLimits> = {},fallbackHandler?: RequestListener, competition?: Competition) {
   const settings = { ...DEFAULT_LIMITS, ...limits };
   const httpServer = createServer((request, response) => {
     if (request.method === 'GET' && request.url === '/health/live') { response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end('{"status":"up"}'); return; }
@@ -95,13 +97,15 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
     void matchmaking.sweep().catch(() => { /* Failed persistence stays pending and is retried. */ }).finally(() => { sweeping = false; });
   }, 1000);
   sweep.unref?.(); httpServer.on('close', () => clearInterval(sweep));
-  const identities = new Map<string, { playerId: string; socketId: string; expires: number; accountId: string | null }>();
+  const identities = new Map<string, { playerId: string; socketId: string; expires: number; accountId: string | null; name: string; termsVersion?: string; termsAcceptedAt?: number }>();
   io.use(async (socket, next) => {
     const ip = clientAddress(socket);
     if (!handshakeAllowed(ip)) return next(new Error('Çok fazla bağlantı denemesi.'));
     let accountId: string | null = null;
-    try { accountId = await resolveAccount(socket.handshake.headers.cookie); }
+    try { const account = await resolveAccount(socket.handshake.headers.cookie); accountId = typeof account === 'string' ? account : account?.id ?? null; socket.data.name = typeof account === 'object' && account ? account.name.slice(0, 40) : 'Oyuncu'; }
     catch { return next(new Error('Oturum doğrulanamadı.')); }
+    const existing = identities.get(String(socket.handshake.auth?.resumeToken ?? ''));
+    if (existing?.socketId && existing.accountId === accountId) return next(new Error('Bu oyun oturumu başka bir sekmede açık.'));
     if (connections >= settings.maxConnections) return next(new Error('Sunucu kapasitesi dolu.'));
     if ((perIp.get(ip) ?? 0) >= settings.maxPerIp) return next(new Error('Bu ağdan çok fazla bağlantı.'));
     if (accountId && (perAccount.get(accountId) ?? 0) >= settings.maxPerAccount) return next(new Error('Bu hesaptan çok fazla bağlantı.'));
@@ -122,25 +126,30 @@ export function createSocketServer(service: MatchService, readiness: () => Promi
     const candidate = socket.handshake.auth?.resumeToken;
     const resumeToken = typeof candidate === 'string' && identities.has(candidate) && identities.get(candidate)!.expires > Date.now() && !identities.get(candidate)!.socketId && identities.get(candidate)!.accountId === socket.data.accountId
       ? candidate : randomBytes(32).toString('hex');
-    const identity = identities.get(resumeToken) ?? { playerId: randomUUID(), socketId: '', expires: Infinity, accountId: socket.data.accountId as string | null };
+    const identity = identities.get(resumeToken) ?? { playerId: randomUUID(), socketId: '', expires: Infinity, accountId: socket.data.accountId as string | null, name: String(socket.data.name) };
     identity.socketId = socket.id;
     identity.expires = Infinity;
     identities.set(resumeToken, identity);
     const playerId = identity.playerId;
     socket.data.playerId = playerId;
-    const accountAuthorized = async () => !identity.accountId || identity.accountId === await resolveAccount(socket.handshake.headers.cookie);
+    const accountAuthorized = async () => { if (!identity.accountId) return true; const account = await resolveAccount(socket.handshake.headers.cookie); return identity.accountId === (typeof account === 'string' ? account : account?.id); };
     let queueEpoch = 0;
     socket.emit('session', { playerId, resumeToken });
-    matchmaking.register(playerId, { notify: (event, data) => socket.emit(event, data), accountId: identity.accountId });
+    matchmaking.register(playerId, { notify: (event, data) => socket.emit(event, data), accountId: identity.accountId, name: identity.name });
     socket.emit('playerId', playerId);
     socket.on('quickMatch', (payload: unknown, ack: unknown) => {
       if (!allowed('quickMatch', 5)) { if (typeof ack === 'function') ack({ status: 429 }); return; }
       const epoch = queueEpoch;
       void (async () => {
-        if (payload !== undefined && (!payload || typeof payload !== 'object' || Object.keys(payload).some(k => k !== 'kind') || !('kind' in payload) || !['casual', 'ranked'].includes(String(payload.kind)))) throw new SessionError(400, 'Geçersiz eşleşme isteği.');
+        if (payload !== undefined && (!payload || typeof payload !== 'object' || Object.keys(payload).some(k => !['kind', 'name', 'termsAccepted', 'termsVersion'].includes(k)) || !('kind' in payload) || !['casual', 'ranked'].includes(String(payload.kind)))) throw new SessionError(400, 'Geçersiz eşleşme isteği.');
         const kind = payload && typeof payload === 'object' && 'kind' in payload && payload.kind === 'ranked' ? 'ranked' : 'casual';
         if (!await accountAuthorized()) throw new SessionError(401, 'Oturum sona erdi.');
         if (kind === 'ranked' && !identity.accountId) throw new SessionError(401, 'Rekabetçi maç için doğrulanmış hesabınla giriş yap.');
+        if (kind === 'casual' && !identity.accountId && identity.termsVersion !== TERMS_VERSION) {
+          const name = guestName(payload && typeof payload === 'object' && 'name' in payload ? payload.name : null);
+          if (!name || !acceptsTerms(payload)) throw new SessionError(400, 'Oyuncu adını ve koşul kabulünü kontrol et.');
+          identity.name = name; identity.termsVersion = TERMS_VERSION; identity.termsAcceptedAt = Date.now(); matchmaking.name(playerId, name);
+        }
         if (kind === 'ranked' && !await readiness()) throw new SessionError(503, 'Rekabetçi maç hizmeti kullanılamıyor.');
         if (epoch !== queueEpoch) return;
         await matchmaking.enqueue(playerId, kind);
@@ -185,7 +194,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   // Any match left open by a previous socket process is over; it cannot be resumed in memory.
   const closed = await journal.recover();
   if (closed) console.log(`Golvia closed ${closed} unfinished matches from a previous process`);
-  const { io, httpServer } = createSocketServer(service, async () => { await pool.query('SELECT 1'); await repository.catalog(); if (process.env.BETTER_AUTH_URL) await pool.query('SELECT 1 FROM golvia_auth."user" LIMIT 1'); return true; }, socketAccount, {}, undefined, competition);
+  const { io, httpServer } = createSocketServer(service, async () => { await pool.query('SELECT 1'); await repository.catalog(); if (process.env.BETTER_AUTH_URL) await pool.query('SELECT 1 FROM golvia_auth."user" LIMIT 1'); return true; }, socketIdentity, {}, undefined, competition);
   httpServer.listen(Number(process.env.WS_PORT ?? 3001), process.env.WS_HOST ?? (process.env.NODE_ENV === 'production' ? '127.0.0.1' : '0.0.0.0'), () => console.log('Golvia Socket.IO ready'));
   let stopping = false;
   const stop = () => {

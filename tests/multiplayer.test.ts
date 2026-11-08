@@ -2,25 +2,26 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
-import ts from 'typescript';
 import { io as client, type Socket } from 'socket.io-client';
 import { createSocketServer } from '../src/server/socketServer.ts';
 import { MatchService } from '../src/server/game/service.ts';
 import { Matchmaking } from '../src/server/matchmaking.ts';
+import { TERMS_VERSION } from '../src/lib/legal.ts';
+const guestPayload = { kind: 'casual', name: 'Deneme', termsAccepted: true, termsVersion: TERMS_VERSION };
 
-test('route retains server metadata and delegates hooks to a client boundary', async () => {
-  const source = await readFile(new URL('../src/app/oyun/3-2-1/page.tsx', import.meta.url), 'utf8');
-  const ast = ts.createSourceFile('page.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  assert.ok(ast.statements.some(s => ts.isVariableStatement(s) && s.declarationList.declarations.some(d => d.name.getText(ast) === 'metadata')));
-  assert.doesNotMatch(source, /use client|useState|useEffect/);
-  assert.match(source, /<GameClient/);
+test('home owns the game client and old game route redirects without client hooks', async () => {
+  const route = await readFile(new URL('../src/app/oyun/3-2-1/page.tsx', import.meta.url), 'utf8');
+  const home = await readFile(new URL('../src/app/page.tsx', import.meta.url), 'utf8');
+  assert.match(route, /permanentRedirect/);
+  assert.doesNotMatch(route, /use client|useState|useEffect/);
+  assert.match(home, /<GameClient/);
   const component = await readFile(new URL('../src/features/game/game-client.tsx', import.meta.url), 'utf8');
   assert.match(component, /^'use client'/); assert.match(component, /useQuickMatch/); assert.match(component, /PracticeGame/);
 });
 
 test('two real sockets match, keep choices private, score once and cancel explicitly', { timeout: 12000 }, async () => {
   let now = 0;
-  const service = new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(['a', 'b']), playerIds: new Set(['p']), links: new Map([['p', new Set(['a', 'b'])]]) }), () => now);
+  const service = new MatchService(async () => ({ version: 'synthetic', selectionIds: new Set(['a', 'b']), playerIds: new Set(['p', 'w']), links: new Map([['p', new Set(['a', 'b'])]]) }), () => now);
   const server = createSocketServer(service);
   server.httpServer.listen(0, '127.0.0.1'); await once(server.httpServer, 'listening');
   const address = server.httpServer.address(); assert.ok(address && typeof address !== 'string');
@@ -29,8 +30,9 @@ test('two real sockets match, keep choices private, score once and cancel explic
   try {
     const aReady = socketOnce<string>(a, 'playerId'), bReady = socketOnce<string>(b, 'playerId'); a.connect(); b.connect();
     const [[aId], [bId]] = await Promise.all([aReady, bReady]); assert.notEqual(aId, bId);
+    assert.equal((await a.timeout(2000).emitWithAck('quickMatch', { ...guestPayload, name: '<script>' })).status, 400);
     const matchedA = socketOnce(a, 'matchFound'), matchedB = socketOnce(b, 'matchFound');
-    a.emit('quickMatch'); b.emit('quickMatch');
+    a.emit('quickMatch', guestPayload); b.emit('quickMatch', guestPayload);
     const [[ma], [mb]] = await Promise.all([matchedA, matchedB]); assert.equal(ma.matchId, mb.matchId); assert.notEqual(ma.seat, mb.seat); assert.equal(ma.tokens, undefined);
     const before = await a.timeout(2000).emitWithAck('getState', { matchId: ma.matchId });
     assert.equal(before.view.phase, 'ready');
@@ -46,6 +48,9 @@ test('two real sockets match, keep choices private, score once and cancel explic
     const bv = await b.timeout(2000).emitWithAck('playerAction', { matchId: mb.matchId, action: action('b') });
     assert.equal(av.view.choices[mb.seat], null); assert.equal(bv.view.choices[ma.seat], null);
     now = 7800;
+    const wrong = await a.timeout(2000).emitWithAck('playerAction', { matchId: ma.matchId, action: { type: 'answer', id: 'w', requestId: 'wrong', round: 1, attempt: 1 } });
+    assert.equal(wrong.receipt.code, 'incorrect'); assert.equal(wrong.view.phase, 'answer');
+    now = 8150;
     const answer = { type: 'answer', id: 'p', requestId: 'answer', round: 1, attempt: 1 };
     av = await a.timeout(2000).emitWithAck('playerAction', { matchId: ma.matchId, action: answer });
     const repeated = await a.timeout(2000).emitWithAck('playerAction', { matchId: ma.matchId, action: answer });
@@ -65,7 +70,9 @@ test('a disconnected player resumes the same match within grace period', { timeo
     const session = socketOnce<{ playerId: string; resumeToken: string }>(a, 'session');
     await Promise.all([socketOnce(a, 'playerId'), socketOnce(b, 'playerId')]);
     const [[identity]] = await Promise.all([session]);
-    const maPromise = socketOnce(a, 'matchFound'), mbPromise = socketOnce(b, 'matchFound'); a.emit('quickMatch'); b.emit('quickMatch');
+    const duplicate = client(url, { autoConnect: false, reconnection: false, auth: { resumeToken: identity.resumeToken } });
+    try { const denied = socketOnce<{ message: string }>(duplicate, 'connect_error'); duplicate.connect(); const [[error]] = await Promise.all([denied]); assert.match(String(error.message), /başka bir sekmede/); } finally { duplicate.disconnect(); }
+    const maPromise = socketOnce(a, 'matchFound'), mbPromise = socketOnce(b, 'matchFound'); a.emit('quickMatch', guestPayload); b.emit('quickMatch', guestPayload);
     const [[ma], [mb]] = await Promise.all([maPromise, mbPromise]);
     const lost = socketOnce(b, 'opponentDisconnected'); a.disconnect(); await lost;
     assert.equal((await b.timeout(2000).emitWithAck('getState', { matchId: mb.matchId })).status, 200);
@@ -109,13 +116,13 @@ test('quitQueue cancels a quickMatch awaiting account validation', { timeout: 60
     await Promise.all([socketOnce(a, 'playerId'), socketOnce(b, 'playerId')]);
     let found = 0;
     a.on('matchFound', () => found++); b.on('matchFound', () => found++);
-    a.emit('quickMatch'); a.emit('quitQueue'); b.emit('quickMatch');
+    a.emit('quickMatch', guestPayload); a.emit('quitQueue'); b.emit('quickMatch', guestPayload);
     await new Promise(resolve => setTimeout(resolve, 30));
     release();
     await new Promise(resolve => setTimeout(resolve, 30));
     assert.equal(found, 0);
     const matched = Promise.all([socketOnce(a, 'matchFound'), socketOnce(b, 'matchFound')]);
-    a.emit('quickMatch');
+    a.emit('quickMatch', guestPayload);
     await matched;
     assert.equal(found, 2);
   } finally { a.disconnect(); b.disconnect(); await new Promise<void>(resolve => server.io.close(() => resolve())); }

@@ -1,5 +1,18 @@
 # Golvia — Yol haritası
 
+## Oyun odaklı UX yenilemesi — 8 Kasım 2026
+
+- [x] Doğrudan oyun ana sayfası, eski rota yönlendirmesi, tek koyu tema, minimal sürüm/hesap üst bölümü ve iki seçenekli oyun alanı.
+- [x] Yeni skor/seçim/arama/sonuç düzeni, dairesel 3–2–1, olay tabanlı animasyonlar ve reduced-motion.
+- [x] Yanlış cevaptan sonra yeniden deneme; 3/15 saniye, sunucu hız sınırı, idempotency ve tek puan korunması; HTTP/Socket.IO regresyonları.
+- [x] Sunucuda doğrulanan misafir adı, ayrı misafir eşleşmesi, aynı devam anahtarında tek aktif socket ve ELO izolasyonu.
+- [x] Birleşik hesap ekranı, koşul sürümü/zamanı, veri indirimi, güvenli hesap silme ve yapılandırmaya bağlı Google OAuth kodu.
+- [x] Beş hukuki taslak, gerçek çerez/veri akışı ve açık eksikler; analitik/reklam banner'ı eklenmedi.
+- [x] 87 genel, 9 rekabetçi PostgreSQL, 1 hesap ve 2 HTTP testi; lint/typecheck/build; 320/390/768/1440 px başlangıç ve mobil hesap görüntüleri.
+- [ ] Google üretim anahtarları, sağlayıcı dönüşü ve gerçek SMTP teslimatı.
+- [ ] Veri sorumlusu/iletişim, sağlayıcı ülkeleri ve aktarım dayanağı, saklama/imha takvimi, yaş politikası ve hukuk incelemesi.
+- [ ] Fiziksel mobil klavye/cihaz, tüm oyun durumlarında etkileşimli tarayıcı ve yük doğrulaması; canlı migrasyon öncesi yedek/geri yükleme.
+
 ## Golvia 1.1 — 8 Kasım 2026
 
 - [x] Aktif rekabetçi maçtan çıkış ve 30 saniyede dönmeme için hükmen sonuç; eşleşme öncesi ve iki taraf yokken ELO'suz iptal.

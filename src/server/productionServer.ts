@@ -3,7 +3,7 @@ import next from 'next';
 import { Pool } from 'pg';
 
 import { createSocketServer } from './socketServer.ts';
-import { socketAccount } from './socketAuth.ts';
+import { socketIdentity } from './socketAuth.ts';
 import { closeAuth } from './auth.ts';
 import { MatchService } from './game/service.ts';
 import { FootballRepository } from './football/repository.ts';
@@ -69,7 +69,7 @@ const readiness = async () => {
 const { io, httpServer } = createSocketServer(
   service,
   readiness,
-  socketAccount,
+  socketIdentity,
   {},
   (request, response) => {
     void handle(request, response).catch((error: unknown) => {

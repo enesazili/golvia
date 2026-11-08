@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS golvia_auth."user" (
   username text UNIQUE, "displayUsername" text, status text NOT NULL DEFAULT 'active'
 );
 ALTER TABLE golvia_auth."user" ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE golvia_auth."user" ADD COLUMN IF NOT EXISTS "termsVersion" text;
+ALTER TABLE golvia_auth."user" ADD COLUMN IF NOT EXISTS "termsAcceptedAt" timestamptz;
 CREATE TABLE IF NOT EXISTS golvia_auth.session (
   id text PRIMARY KEY, "expiresAt" timestamptz NOT NULL, token text NOT NULL UNIQUE,
   "createdAt" timestamptz NOT NULL, "updatedAt" timestamptz NOT NULL,

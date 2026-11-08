@@ -21,6 +21,8 @@ const smtpConfigured = !!process.env.SMTP_URL || !!process.env.SMTP_FROM;
 if (smtpConfigured && (!process.env.SMTP_URL || !process.env.SMTP_FROM)) throw new Error('SMTP_URL and SMTP_FROM must be set together');
 if (authConfigured && !smtpConfigured) warnings.push('SMTP is not configured: account signup, verification and password reset stay disabled.');
 if (!authConfigured) warnings.push('Better Auth is not configured: accounts are unavailable, guest play is unaffected.');
+if (!!process.env.GOOGLE_CLIENT_ID !== !!process.env.GOOGLE_CLIENT_SECRET) throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together');
+if (['LEGAL_CONTROLLER_NAME', 'LEGAL_CONTACT', 'LEGAL_HOSTING_LOCATION', 'LEGAL_RETENTION_POLICY'].some(key => !process.env[key])) warnings.push('Legal documents are drafts: controller, contact, hosting and retention facts need completion and legal review.');
 
 try { await readFile(new URL('../.next/BUILD_ID', import.meta.url), 'utf8'); }
 catch { throw new Error('Production build missing; run npm run build first'); }
@@ -34,6 +36,10 @@ try {
     // Table names come from this fixed list, never from user input.
     const result = await pool.query(`SELECT to_regclass($1) IS NOT NULL AS present`, [table.includes('.') ? table.replaceAll('"', '') : `public.${table}`]);
     if (!result.rows[0]?.present) throw new Error(`Database migration missing for ${table}; run npm run db:migrate${table.startsWith('golvia_auth') ? ' and npm run db:auth:migrate' : ''}`);
+  }
+  if (authConfigured) {
+    const columns = await pool.query("SELECT count(*)::int n FROM information_schema.columns WHERE table_schema='golvia_auth' AND table_name='user' AND column_name IN ('termsVersion','termsAcceptedAt')");
+    if (columns.rows[0].n !== 2) throw new Error('Database migration missing for account terms; run npm run db:auth:migrate after backup');
   }
   const version = await pool.query('SELECT version FROM football_dataset WHERE id = 1');
   if (!version.rows[0]?.version) warnings.push('No football dataset imported yet; matches will fail until npm run db:import runs.');
