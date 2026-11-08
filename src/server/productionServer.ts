@@ -1,3 +1,4 @@
+import { retryDatabaseStartup } from './database-startup.ts';
 import { SocialRepository } from './social/repository.ts';
 
 import next from 'next';
@@ -30,7 +31,7 @@ const handle = app.getRequestHandler();
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 5,
-  connectionTimeoutMillis: 3000,
+  connectionTimeoutMillis: 10000,
   statement_timeout: 5000,
 });
 
@@ -44,10 +45,20 @@ const service = new MatchService(
 );
 
 // Previous process matches cannot be resumed.
-const closed = await journal.recover();
 const competition = new CompetitiveRepository(pool);
-await competition.recover();
-const social=new SocialRepository(pool);await social.recover();
+const social = new SocialRepository(pool);
+let closed:number;
+try {
+  closed = await retryDatabaseStartup(async () => {
+    const count = await journal.recover();
+    await competition.recover();
+    await social.recover();
+    return count;
+  });
+} catch(error) {
+  await pool.end();
+  throw error;
+}
 
 if (closed) {
   console.log(

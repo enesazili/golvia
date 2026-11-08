@@ -10,7 +10,9 @@
 - [x] Sosyal worktree'sini P1 hotfix `e020ea1` korunarak ana repoyla birleştirme; entegrasyon testleri.
 - [x] Tutarlı canlı snapshot yedeği, 26 tablo için izole geri yükleme/içerik özeti doğrulaması ve iki kez minimal staging migration'ı.
 - [x] Canlıda yalnız optimize football_link view + sosyal şema migration'ı; 26 mevcut tablonun içeriği korundu.
-- [ ] GitHub Git kimlik doğrulamasının açılması ve `git push origin main`; uzak main `30fe4e5`, canlı 1.4.1/readiness ve antrenman 503.
+- [x] Kullanıcı tarafından `d057fbb` dahil ilk entegrasyon commitlerinin GitHub'a gönderilmesi.
+- [x] Render başlangıç TCP timeout düzeltmesi: 10 saniye bağlantı, yalnız geçici hatalarda üç idempotent recovery denemesi; 130 genel test/lint/typecheck/build ve gerçek TCP arıza denemeleri.
+- [ ] Yeni başlangıç düzeltmesinin kullanıcı tarafından push edilmesi ve Render deploy; canlı hâlâ 1.4.1/readiness ve antrenman 503.
 - [ ] Render deploy sonrası readiness/antrenman/1v1 ve oturumlu sosyal/Google akışlarının canlı doğrulaması.
 - [ ] Fiziksel mobil klavye ve gerçek eşzamanlı yük kontrolü.
 
