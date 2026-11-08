@@ -1,5 +1,20 @@
 # Golvia — Yol haritası
 
+- [x] Render e-posta preflight düzeltmesi: Resend yapılandırıldığında SMTP aranmaz; geçersiz/test resend.dev göndericisi genel kayıt/doğrulama/sıfırlamayı açmaz. Eski SMTP uyarısı HEAD sürümündedir; canlı sürüm ve gerçek sağlayıcı teslimatı ayrıca doğrulanmalıdır.
+
+## Hesap kararlılığı ve sadeleştirme — 8 Kasım 2026
+
+- [x] İki alanlı tek hesap formu ve sunucuda otomatik hesap oluşturma/giriş; mevcut credential ve OAuth hesaplarını koruma.
+- [x] Locale'den bağımsız e-posta normalizasyonu, PostgreSQL UNIQUE, eşzamanlı kayıt ve çakışmada güvenli migration duruşu.
+- [x] Tek kullanımlık/süreli doğrulama özeti, hash'li sıfırlama/state kimlikleri, başarısız gönderimde 503 ve yetkisiz rekabete kapalı yeni hesap.
+- [x] Render Free için Resend HTTPS kodu, yerel SMTP uyumu ve gerekli Environment örnekleri.
+- [x] Google Code/state/PKCE/nonce doğrulaması, yanlış callback/redirect reddi ve OAuth e-postasına ikinci hesap oluşturmama testleri.
+- [x] Ortalanmış modal, safe-area/viewport, odak/Escape/animasyon/arka plan kilidi; minimal footer ve profil ayarları.
+- [x] 89 genel, 10 hesap PostgreSQL, 9 rekabetçi PostgreSQL, 2 HTTP testi; dört genişlikte Firefox modal ve gerçek form oturumu; lint/typecheck/build.
+- [ ] Gerçek Render ortamında doğrulanmış gönderici domaini, RESEND_API_KEY/EMAIL_FROM ve gerçek alıcıya teslimat.
+- [ ] Google gerçek client ID/secret ve tam HTTPS callback ile canlı sağlayıcı dönüşü.
+- [ ] Yedek sonrası auth migrasyonu; olası eski e-posta çakışmalarının insan incelemesi; fiziksel mobil klavye ve mevcut hukuki taslak eksikleri.
+
 ## Oyun odaklı UX yenilemesi — 8 Kasım 2026
 
 - [x] Doğrudan oyun ana sayfası, eski rota yönlendirmesi, tek koyu tema, minimal sürüm/hesap üst bölümü ve iki seçenekli oyun alanı.

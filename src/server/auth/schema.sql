@@ -9,6 +9,26 @@ CREATE TABLE IF NOT EXISTS golvia_auth."user" (
 ALTER TABLE golvia_auth."user" ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
 ALTER TABLE golvia_auth."user" ADD COLUMN IF NOT EXISTS "termsVersion" text;
 ALTER TABLE golvia_auth."user" ADD COLUMN IF NOT EXISTS "termsAcceptedAt" timestamptz;
+-- Do not merge or discard legacy case variants. A collision aborts the migration for review.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM golvia_auth."user" GROUP BY lower(btrim(email) COLLATE "C") HAVING count(*) > 1) THEN
+    RAISE EXCEPTION 'Email normalization collision; resolve existing accounts before migration';
+  END IF;
+END $$;
+UPDATE golvia_auth."user" SET email=lower(btrim(email) COLLATE "C") WHERE email<>lower(btrim(email) COLLATE "C");
+DROP INDEX IF EXISTS golvia_auth.user_normalized_email_unique;
+CREATE UNIQUE INDEX user_normalized_email_unique ON golvia_auth."user" (lower(btrim(email) COLLATE "C"));
+CREATE TABLE IF NOT EXISTS golvia_auth.email_verification (
+  digest text PRIMARY KEY, user_id text NOT NULL,
+  expires_at timestamptz NOT NULL
+);
+-- Mail is prepared while Better Auth's user transaction is still uncommitted.
+ALTER TABLE golvia_auth.email_verification DROP CONSTRAINT IF EXISTS email_verification_user_id_fkey;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='golvia_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON golvia_auth.email_verification TO golvia_app;
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS golvia_auth.session (
   id text PRIMARY KEY, "expiresAt" timestamptz NOT NULL, token text NOT NULL UNIQUE,
   "createdAt" timestamptz NOT NULL, "updatedAt" timestamptz NOT NULL,

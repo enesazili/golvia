@@ -19,5 +19,5 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
       user = session?.user ? { name: session.user.name, username: 'username' in session.user ? String(session.user.username ?? '') : null, email: session.user.email, emailVerified: session.user.emailVerified, termsAccepted: session.user.termsVersion === TERMS_VERSION } : null;
     } catch { available = false; }
   }
-  return <main id="main" className="account-page"><div className="account-heading"><span className="eyebrow">GOLVIA / HESAP</span><h1>{user ? 'Senin oyunun.' : 'Sahadaki yerin.'}</h1></div><AccountClient available={available} mailReady={config.mail} googleReady={config.google} user={user} resetToken={token} authError={!!query.authError} />{user?.emailVerified && <CompetitiveProfile />}</main>;
+  return <main id="main" className="account-page"><div className="account-heading"><h1>{user ? 'Profil' : 'Hesap'}</h1></div><AccountClient available={available} mailReady={config.mail} googleReady={config.google} user={user} resetToken={token} authError={!!query.authError} />{user?.emailVerified && <CompetitiveProfile />}</main>;
 }

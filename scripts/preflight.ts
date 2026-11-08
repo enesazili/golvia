@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { Pool } from 'pg';
 import { publicOrigin, socketOrigins } from '../src/server/config.ts';
+import { emailConfiguration } from '../src/server/email.ts';
 
 if (process.env.NODE_ENV !== 'production') throw new Error('Set NODE_ENV=production for the production processes');
 
@@ -18,8 +19,11 @@ if (authConfigured) {
   if (!secret || secret.length < 32 || /replace-with|example/i.test(secret)) throw new Error('BETTER_AUTH_SECRET must be at least 32 random characters');
 }
 const smtpConfigured = !!process.env.SMTP_URL || !!process.env.SMTP_FROM;
-if (smtpConfigured && (!process.env.SMTP_URL || !process.env.SMTP_FROM)) throw new Error('SMTP_URL and SMTP_FROM must be set together');
-if (authConfigured && !smtpConfigured) warnings.push('SMTP is not configured: account signup, verification and password reset stay disabled.');
+if (!process.env.RESEND_API_KEY && !process.env.EMAIL_FROM && smtpConfigured && (!process.env.SMTP_URL || !process.env.SMTP_FROM)) throw new Error('SMTP_URL and SMTP_FROM must be set together');
+if (!!process.env.RESEND_API_KEY !== !!process.env.EMAIL_FROM) throw new Error('RESEND_API_KEY and EMAIL_FROM must be set together');
+const email = emailConfiguration();
+if (authConfigured && email.testDomain) warnings.push('Resend test domain is not eligible for public accounts; signup, verification and reset stay disabled. Use a verified sending domain.');
+else if (authConfigured && !email.provider) warnings.push('Email delivery is unavailable: configure RESEND_API_KEY and EMAIL_FROM on Render; signup, verification and reset stay disabled.');
 if (!authConfigured) warnings.push('Better Auth is not configured: accounts are unavailable, guest play is unaffected.');
 if (!!process.env.GOOGLE_CLIENT_ID !== !!process.env.GOOGLE_CLIENT_SECRET) throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together');
 if (['LEGAL_CONTROLLER_NAME', 'LEGAL_CONTACT', 'LEGAL_HOSTING_LOCATION', 'LEGAL_RETENTION_POLICY'].some(key => !process.env[key])) warnings.push('Legal documents are drafts: controller, contact, hosting and retention facts need completion and legal review.');
@@ -31,7 +35,7 @@ const pool = new Pool({ connectionString: databaseUrl, max: 1, connectionTimeout
 try {
   await pool.query('SELECT 1');
   const required = ['football_dataset', 'football_entity', 'football_career', 'football_link', 'golvia_match', 'competitive_rating', 'competitive_match', 'competitive_participant'];
-  if (authConfigured) required.push('golvia_auth."user"', 'golvia_auth.session');
+  if (authConfigured) required.push('golvia_auth."user"', 'golvia_auth.session', 'golvia_auth.email_verification');
   for (const table of required) {
     // Table names come from this fixed list, never from user input.
     const result = await pool.query(`SELECT to_regclass($1) IS NOT NULL AS present`, [table.includes('.') ? table.replaceAll('"', '') : `public.${table}`]);

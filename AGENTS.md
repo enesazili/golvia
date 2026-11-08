@@ -1,5 +1,12 @@
 # Golvia çalışma yönergeleri
 
+## Hesap akışı — 8 Kasım 2026
+
+- Hesap formu e-posta/şifre ile `/api/auth/continue/email` kullanır. Yeni hesap kararı yalnız sunucudadır; mevcut veya OAuth-only e-posta için ikinci credential/hesap oluşturma. Ortak hata mesajı, Better Auth parola/CSRF/hız sınırı ve doğrulanmadan rekabete kapalı hesap kuralını koru.
+- E-posta benzersizliği PostgreSQL'de C collation ile sağlanır; Türkçe locale lower() davranışına dönme. Çakışmada migration veri birleştirmez/silmez.
+- Render Free e-posta yolu Resend HTTPS'tir (RESEND_API_KEY + EMAIL_FROM). SMTP yalnız Render dışı kurulumda kullanılır. Public auth isteklerini `handleAuth` üzerinden geçir; gönderim hatalarını başarı sayma. Token/URL/parola loglama.
+- Google state/PKCE ve nonce bağlamasını, doğrulama özetlerinin tek kullanımlılığını koru. Canlı anahtar/teslimat ve auth migrasyonu doğrulanmış varsayılmaz.
+
 ## UX yenilemesi — 8 Kasım 2026
 
 - `/` doğrudan oyun ekranıdır; `/oyun/3-2-1` kalıcı yönlendirmedir. Tek koyu tema ve package.json kaynaklı sürüm korunur. Tanıtım/tema seçici geri eklenmez.
@@ -31,7 +38,7 @@
 - İlgili kontroller: npm test, npm run test:db, npm run lint, npm run typecheck, npm run build. HTTP değişiminde yerel sunucu ve TEST_BASE_URL ile npm run test:http. test:db gerçek PostgreSQL ve geçici izole şema kullanır; bağlantı yokken başarı/skip iddia etme.
 - Yapılmayan kontrolleri geçti diye yazma. Önemli karar/ilerleme/kanıtları PROJECT_CONTEXT.md ve ROADMAP.md'ye kaydet. Kısa, somut sonuç ve sınırlamalar bildir.
 - npm audit fix --force ile kontrolsüz sürüm değişiklikleri yapma. Geliştirme araçlarındaki bilinen 16 moderate bildirimi ayrı raporla; üretim audit sonucuyla karıştırma.
-- Üretimde GOLVIA_PUBLIC_ORIGIN ve BETTER_AUTH_URL aynı HTTPS origin olmalı. /socket.io reverse proxy ile tek Socket.IO sürecine yönlenir; maçlar hâlâ bellektedir ve restartta kaybolur. Çoklu replica desteklenmez. PostgreSQL olmadan üretim veri yedeği açılmaz; SMTP olmadan hesap kaydı kapalıdır. Auth migrasyonu izole PostgreSQL'de test edildi; canlıya uygulamadan önce canlı yedek ve geri yükleme denemesi gerekir.
+- Üretimde GOLVIA_PUBLIC_ORIGIN ve BETTER_AUTH_URL aynı HTTPS origin olmalı. /socket.io reverse proxy ile tek Socket.IO sürecine yönlenir; maçlar hâlâ bellektedir ve restartta kaybolur. Çoklu replica desteklenmez. PostgreSQL olmadan üretim veri yedeği açılmaz; Desteklenen e-posta sağlayıcısı olmadan hesap kaydı kapalıdır; Render üzerinde doğrulanmış göndericiyle Resend HTTPS gerekir. Auth migrasyonu izole PostgreSQL'de test edildi; canlıya uygulamadan önce canlı yedek ve geri yükleme denemesi gerekir.
 - Yerel staging PostgreSQL 127.0.0.1:55437 ve izole test dosyaları .local/postgres altındadır; Git dışıdır. Parola/token içeriğini yazdırma. golvia_stage gerçek kullanıcı verisi içermez; golvia_account_test yalnız sentetik hesap testleri içindir. Başka DB, Docker konteyneri veya projeye dokunma.
 
 - Wikidata toplamasında gerçek iletişim içeren WIKIDATA_USER_AGENT zorunlu. contact@example.com yalnızca örnektir; canlı istek için kullanma. Kullanıcı gerçek iletişim adresini sağladı. WIKIDATA_USER_AGENT yalnızca çalışma ortamında ayarlansın; adres kaynak koda yazılmasın. Phase 8 isteği yalnız ayrı A Top 100 checkpoint'inde kontrollü toplamayı yeniden yetkilendirdi; genel dünya taraması, eski checkpoint/ham JSON değişimi ve canlı veritabanına yazma yasaktır.
