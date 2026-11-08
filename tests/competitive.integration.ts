@@ -106,6 +106,27 @@ test('PostgreSQL ranked results, atomic ELO, idempotency, account ownership and 
       await assert.rejects(repository.complete('forfeit', [0, 0], null, at + 12000), /çakışıyor/);
       await assert.rejects(repository.cancel('forfeit', 'disconnect'), /Tamamlanmış/);
     });
+    await t.test('career statistics, historical opponent rank, owned pagination and own standing use persisted records', async () => {
+      for (let i = 0; i < 12; i++) {
+        const id = `career-${i}`; await repository.start(id, [users[0], users[1]], at + 20000 + i * 1000);
+        await repository.complete(id, [3, 0], 0, at + 20500 + i * 1000, i === 0 ? 'forfeit' : 'finished');
+      }
+      const first = await repository.profile(users[0], 1, 5), second = await repository.profile(users[0], 2, 5);
+      assert.equal(first.history.length, 5); assert.equal(first.hasNext, true);
+      assert.ok(first.history.every(item => !second.history.some(other => other.id === item.id)));
+      assert.equal(first.history[0].id, 'career-11');
+      assert.equal(first.history[0].opponent_name, 'Synthetic 1');
+      assert.ok(first.history[0].opponent_rank); assert.equal(first.stats.streak_outcome, 'win'); assert.ok(first.stats.streak >= 12);
+      assert.ok(first.stats.forfeit_wins >= 1); assert.ok(first.stats.peak >= first.ratings[0].elo);
+      assert.ok(first.standing); assert.equal((await repository.leaderboard('3-2-1', 999, 2, users[0])).self?.name, 'Synthetic 0');
+      assert.equal((await repository.profile(users[4])).history.length, 0);
+      await assert.rejects(repository.profile(users[0], -1), /Geçersiz/);
+      await admin.query('DELETE FROM golvia_auth."user" WHERE id=$1', [users[1]]);
+      const deleted = await repository.profile(users[0]); assert.equal(deleted.history[0].opponent_name, 'Silinmiş oyuncu');
+      assert.ok(deleted.history[0].opponent_rank);
+      await admin.query('UPDATE golvia_auth."user" SET status=\'suspended\' WHERE id=$1', [users[0]]);
+      assert.equal((await repository.leaderboard('3-2-1', 1, 20, users[0])).self, null);
+    });
   } finally {
     await pool?.end();
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`).catch(() => undefined);

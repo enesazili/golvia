@@ -1,5 +1,12 @@
 # Golvia çalışma yönergeleri
 
+## Profil ve kariyer — 1.3.0
+
+- Rank eşiklerini `src/lib/rating.ts` tek kaynağından kullan; 900/1100/1300/1500/1800 uyumluluğunu koru. İstemcide ELO/rank yazımı açma.
+- Profil/geçmiş yalnız oturum sahibine aittir; geçmiş rakibinin rankı `elo_before` üzerinden gelir. Saklanmamış veri üretme; silinmiş hesapta özel bilgi geri getirme.
+- Görünen ad Better Auth üzerinden 2–24 karakter/NFKC ile değişir; Google/e-posta/ELO kimliklerini profil güncellemesine ekleme. E-posta değişikliği şu sürümde kapalıdır; domain ve eski/yeni adres doğrulaması güvenlik testlerinden geçmeden açma.
+- Sonuç görüntüsü kapanana kadar rakip adı korunabilir; kapatmada ve yeniden eşleşmede socket/kimlik/deadline kalıntısı bırakma.
+
 ## Hesap akışı — 8 Kasım 2026
 
 - Hesap formu e-posta/şifre ile `/api/auth/continue/email` kullanır. Yeni hesap kararı yalnız sunucudadır; mevcut veya OAuth-only e-posta için ikinci credential/hesap oluşturma. Ortak hata mesajı, Better Auth parola/CSRF/hız sınırı ve doğrulanmadan rekabete kapalı hesap kuralını koru.
@@ -45,7 +52,29 @@
 - Toplayıcının SQLite checkpoint dosyasında veriler, sonraki işler ve tamamlanma işareti aynı transaction içinde kaydedilmeli. Başarısız sorguyu tamamlandı sayma. Çalışan checkpoint dosyasını tek başına kopyalama; WAL dosyalarını göz ardı etme.
 - P54 adayları appeared=false/verified=false kalmalı; bilinmeyen takım inceleme kuyruğuna alınmalı. Kaynak revizyonu, statement kimliği, tüm qualifiers/references korunmalı. Aday import seed'i ve doğrulanmış ilişkileri ezmemeli.
 
+## Transfermarkt adayları — 8 Kasım 2026
 
+- Transfermarkt verisi `data:transfermarkt` ile yerel DuckDB'den üretilir; çıktı ve DuckDB/CSV dosyaları Git dışıdır. Veri seti 6 Temmuz 2026'da dondurulmuştur; güncel olduğunu varsayma. TR2/TR3 ve Serie B bu kaynakta yoktur.
+- Yalnız `appearances` maç oynama kanıtıdır. Transfer kaydı tek başına A takım maçı kanıtı değildir ve `football_transfer` içinde ayrı tutulur. Aday kariyer `appeared=true, verified=false` olur; insan incelemesi olmadan `verified` yapma ve oyuna açma.
+- Adaylar `tm:` ad alanını kullanır; reviewed/Wikidata kimliklerine yalnız `football_identity_link` içindeki kesin kurallarla bağlanır (oyuncu: ad+doğum tarihi, kulüp: tam ad ve çelişmeyen ülke). Şüpheli veya çoklu eşleşmeyi birleştirme; isimleri kimlik olarak kullanma.
+- Aday import reviewed dataset sürümünü, doğrulanmış kariyerleri ve `football_link` oyun bağlarını değiştirmemeli. Lisans CC0-1.0 depo derlemesi içindir; Transfermarkt site koşulları ve canlı kullanım için ayrı hukuk onayı gerekir. Canlı DB'ye, commit/push'a dokunma.
+
+
+
+## Veri lisans kapısı — 1.4.0
+
+- `football_link` yalnız `football_source_clearance.status='cleared'` + `verified && appeared` satırlarını birleştirir. Aday kaynak importta zorunlu `unresolved` olur; lisansı kendiliğinden temizleme, yalnız `setSourceClearance` kullan. `reference-only` kaynak asla `cleared` olamaz.
+- Yayın `publishApprovedCareers` ile kaynak `cleared` + `football_review.status='approved'` ister; parti `football_publish_batch` içinde kaydedilir ve `revertPublish` ile geri alınır. Adayı elle `verified=true` yaparak kapıyı açma.
+- Reviewed/verified satırları, `football_dataset` sürümünü ve hesap/ELO/maç tablolarını değiştirme; tekrarlı import idempotent kalmalı. Aday kariyer/transfer yalnız `verified=false` ve inceleme kaydı yoksa güncellenebilir.
+- `data/identity-aliases.json` yalnız insan incelemesiyle eklenir. Aynı ad/farklı doğum tarihi pending kalır; isim benzerliği tek başına kimlik kanıtı değildir.
+
+## Wikidata görünüm verisi — 1.4.1
+
+- Toplu oynanabilir havuz yalnız Wikidata CC0-1.0 yapısal verisinden ve yalnız **P54 + P1350 ≥ 1** kuralıyla üretilir. P54 tek başına üyeliktir; yurttaşlık, transfer veya kulüp listesi maç kanıtı değildir.
+- Kapsam A Top 100 + 12 öncelikli kulüp + 18 A millî takımıdır; oyuncu en az 2 hedef seçimde görünmelidir. Genel dünya taraması, keyfî kulüp ekleme ve katalog dışı büyütme yapılmaz; yeni hedefler bilinçli katalog değişikliğidir.
+- `wd-p1350:` kimlikleri sabittir; dönemler birleştirilir/tekilleştirilir, ters veya 1880–`retrievedYear+1` dışı yıllar uydurulmadan boş bırakılır, `retrievedYear-14` sonrası doğumlu oyuncular düşürülür. Reviewed çiftleri yineleme; youth/transfer-only kayıtları ayrı tut.
+- Dataset importu eklemeli ve idempotenttir; kaynak zorunlu `unresolved` yazılır ve `football_link` değişmez. Oyun açımı yalnız açık `setSourceClearance`/`football-publish grant` ile olur; import kendi lisansını temizleyemez.
+- Canlı toplama gerçek iletişim içeren `WIKIDATA_USER_AGENT` ister; adres repoya yazılmaz. Canlı DB'ye yazma, commit/push/deploy ve yeni toplama ayrı yetki ister.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

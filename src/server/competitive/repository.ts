@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import { elo, GAME_MODE, league, type RankedResult, type Rating } from '../../lib/rating.ts';
+import { elo, GAME_MODE, rankProgress, type RankedResult, type Rating } from '../../lib/rating.ts';
 import { SessionError } from '../game/service.ts';
 
 export interface Competition {
@@ -9,8 +9,8 @@ export interface Competition {
 }
 type Standing = { mode: string; elo: number; wins: number; losses: number; draws: number };
 export function rating(row: Standing): Rating {
-  const played = row.wins + row.losses + row.draws;
-  return { ...row, played, winRate: played ? Math.round(row.wins / played * 1000) / 10 : 0, league: league(row.elo) };
+  const played = row.wins + row.losses + row.draws, rank = rankProgress(row.elo);
+  return { ...row, played, winRate: played ? Math.round(row.wins / played * 1000) / 10 : 0, league: rank.name, rank };
 }
 export class CompetitiveRepository implements Competition {
   constructor(private readonly pool: Pool) {}
@@ -81,24 +81,51 @@ export class CompetitiveRepository implements Competition {
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   }
-  async profile(userId: string) {
+  async profile(userId: string, page = 1, limit = 20) {
+    if (!Number.isSafeInteger(page) || page < 1 || page > 10000 || !Number.isInteger(limit) || limit < 1 || limit > 50) throw new SessionError(400, 'Geçersiz geçmiş sorgusu.');
     const rows = (await this.pool.query('SELECT mode,elo,wins,losses,draws FROM competitive_rating WHERE user_id=$1 ORDER BY mode', [userId])).rows as Standing[];
     if (!rows.some(r => r.mode === GAME_MODE)) rows.push({ mode: GAME_MODE, elo: 1000, wins: 0, losses: 0, draws: 0 });
-    const history = (await this.pool.query(`SELECT m.id,m.mode,m.started_at,m.ended_at,m.score0,m.score1,m.winner,m.reason,p.seat,p.elo_before,p.elo_after
+    const history = (await this.pool.query(`SELECT m.id,m.mode,m.started_at,m.ended_at,m.score0,m.score1,m.winner,m.reason,p.seat,p.elo_before,p.elo_after,
+      COALESCE(u.name,'Silinmiş oyuncu') opponent_name,o.elo_before opponent_elo
       FROM competitive_participant p JOIN competitive_match m ON m.id=p.match_id
-      WHERE p.user_id=$1 AND m.status='completed' ORDER BY m.ended_at DESC,m.id LIMIT 10`, [userId])).rows;
-    return { ratings: rows.map(rating), history };
+      JOIN competitive_participant o ON o.match_id=m.id AND o.seat<>p.seat
+      LEFT JOIN golvia_auth."user" u ON u.id=o.user_id
+      WHERE p.user_id=$1 AND m.status='completed' AND m.mode=$4
+      ORDER BY m.ended_at DESC,m.id DESC LIMIT $2 OFFSET $3`, [userId, limit + 1, (page - 1) * limit, GAME_MODE])).rows;
+    const stats = (await this.pool.query(`WITH ordered AS (
+      SELECT m.id,m.ended_at,p.elo_before,p.elo_after,m.reason,
+        CASE WHEN m.winner IS NULL THEN 'draw' WHEN m.winner=p.seat THEN 'win' ELSE 'loss' END outcome,
+        row_number() OVER(ORDER BY m.ended_at DESC,m.id DESC) rn
+      FROM competitive_participant p JOIN competitive_match m ON m.id=p.match_id
+      WHERE p.user_id=$1 AND m.status='completed' AND m.mode=$2
+    ) SELECT MAX(GREATEST(elo_before,elo_after)) peak,
+      COUNT(*) FILTER(WHERE reason='forfeit' AND outcome='win')::int forfeit_wins,
+      COUNT(*) FILTER(WHERE reason='forfeit' AND outcome='loss')::int forfeit_losses,
+      (SELECT outcome FROM ordered WHERE rn=1) streak_outcome,
+      COUNT(*) FILTER(WHERE rn < COALESCE((SELECT MIN(rn) FROM ordered WHERE outcome<>(SELECT outcome FROM ordered WHERE rn=1)),2147483647))::int streak,
+      COALESCE(json_agg(json_build_object('id',id,'at',ended_at,'before',elo_before,'elo',elo_after,'outcome',outcome) ORDER BY rn DESC) FILTER(WHERE rn<=30),'[]') recent
+      FROM ordered`, [userId, GAME_MODE])).rows[0];
+    const own = await this.leaderboard(GAME_MODE, 1, 1, userId);
+    return { ratings: rows.map(rating), stats, standing: own.self, page, hasNext: history.length > limit,
+      history: history.slice(0, limit).map(item => ({ ...item, opponent_rank: item.opponent_elo == null ? null : rankProgress(item.opponent_elo) })) };
   }
-  async leaderboard(mode: string, page: number, limit = 20) {
+  async leaderboard(mode: string, page: number, limit = 20, userId: string | null = null) {
     if (![GAME_MODE, 'overall'].includes(mode) || !Number.isSafeInteger(page) || page < 1 || page > 10000 || !Number.isInteger(limit) || limit < 1 || limit > 50) throw new SessionError(400, 'Geçersiz sıralama sorgusu.');
     const result = await this.pool.query(`WITH stats AS (
       SELECT r.user_id, SUM(r.wins)::int wins,SUM(r.losses)::int losses,SUM(r.draws)::int draws,
         CASE WHEN $1='overall' THEN ROUND(1000 + (SUM(r.elo::numeric*(r.wins+r.losses+r.draws))/NULLIF(SUM(r.wins+r.losses+r.draws),0)-1000)*SUM(r.wins+r.losses+r.draws)/(SUM(r.wins+r.losses+r.draws)+20))::int ELSE MAX(r.elo) END elo
       FROM competitive_rating r WHERE ($1='overall' OR r.mode=$1) AND r.wins+r.losses+r.draws>0 GROUP BY r.user_id
-    ) SELECT s.elo,s.wins,s.losses,s.draws,COALESCE(NULLIF(u.username,''),u.name) name,COUNT(*) OVER()::int total
+    ) , ranked AS (SELECT s.elo,s.wins,s.losses,s.draws,u.name, s.user_id=$4 AS self,COUNT(*) OVER()::int total,
+      ROW_NUMBER() OVER(ORDER BY s.elo DESC,s.wins DESC,s.losses ASC,s.user_id)::int position
       FROM stats s JOIN golvia_auth."user" u ON u.id=s.user_id WHERE u.status='active' AND u."emailVerified"
-      ORDER BY s.elo DESC,s.wins DESC,s.losses ASC,s.user_id LIMIT $2 OFFSET $3`, [mode, limit, (page - 1) * limit]);
+       ) SELECT * FROM ranked WHERE (position>$3 AND position<=$3+$2) OR self ORDER BY position`, [mode, limit, (page - 1) * limit, userId]);
+    const format = ({ name, elo, wins, losses, draws, position }: typeof result.rows[number]) => {
+      const { rank: badge, ...stats } = rating({ mode, elo, wins, losses, draws });
+      return { ...stats, badge, rank: position as number, name: String(name), ...(mode === 'overall' ? { league: '—' } : {}) };
+    };
+    const self = result.rows.find(row => row.self);
     return { page, limit, hasNext: result.rows[0] ? page * limit < result.rows[0].total : false,
-      items: result.rows.map(({ name, elo, wins, losses, draws }, index) => ({ rank: (page - 1) * limit + index + 1, name: String(name), ...rating({ mode, elo, wins, losses, draws }), ...(mode === 'overall' ? { league: '—' } : {}) })) };
+      self: self ? format(self) : null,
+      items: result.rows.filter(row => row.position > (page - 1) * limit && row.position <= page * limit).map(format) };
   }
 }

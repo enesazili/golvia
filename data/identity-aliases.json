@@ -1,0 +1,60 @@
+{
+  "version": "identity-aliases-2026-11-08-v1",
+  "reviewedAt": "2026-11-08",
+  "reviewer": "golvia-manual-review",
+  "note": "Only explicit, human-reviewed identity mappings. Name similarity alone is never enough.",
+  "links": [
+    {
+      "externalId": "tm:club:1041",
+      "entityId": "Q704",
+      "evidence": {
+        "rule": "manual-reviewed-club-identity",
+        "externalName": "Olympique Lyon",
+        "existingName": "Olympique Lyonnais",
+        "country": "France",
+        "catalog": "Lyon (Q704)",
+        "reason": "Aynı Fransız kulübü; 'Olympique Lyon' adı 'Olympique Lyonnais' kulübünün yaygın kısaltmasıdır.",
+        "identitySource": "https://www.wikidata.org/wiki/Q704"
+      }
+    },
+    {
+      "externalId": "tm:club:964",
+      "entityId": "Q29108",
+      "evidence": {
+        "rule": "manual-reviewed-club-identity",
+        "externalName": "AO FK Zenit Sankt-Peterburg",
+        "existingName": "Zenit St. Petersburg",
+        "country": "Russia",
+        "catalog": "Zenit Saint Petersburg (Q29108)",
+        "reason": "Aynı Sankt-Peterburg kulübü; 'AO FK' kulüp önekidir ve 'Sankt-Peterburg' adın transliterasyonudur.",
+        "identitySource": "https://www.wikidata.org/wiki/Q29108"
+      }
+    },
+    {
+      "externalId": "tm:club:18544",
+      "entityId": "Q482764",
+      "evidence": {
+        "rule": "manual-reviewed-club-identity",
+        "externalName": "Al-Nassr Football Club",
+        "existingName": "Al-Nassr",
+        "country": "Saudi Arabia",
+        "catalog": "Al-Nassr (Q482764)",
+        "reason": "Aynı Suudi kulübü; 'Football Club' açılımı 'FC' kısaltmasının eşdeğeridir.",
+        "identitySource": "https://www.wikidata.org/wiki/Q482764"
+      }
+    },
+    {
+      "externalId": "tm:club:1114",
+      "entityId": "Q73965",
+      "evidence": {
+        "rule": "manual-reviewed-club-identity",
+        "externalName": "Al-Hilal Saudi Football Club",
+        "existingName": "El-Hilâl",
+        "country": "Saudi Arabia",
+        "catalog": "Al-Hilal Saudi FC (Q73965)",
+        "reason": "Aynı Suudi kulübü; 'SFC' açılımı 'Saudi Football Club' ile eşleşir.",
+        "identitySource": "https://www.wikidata.org/wiki/Q73965"
+      }
+    }
+  ]
+}

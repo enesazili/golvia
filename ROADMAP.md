@@ -1,5 +1,57 @@
 # Golvia — Yol haritası
 
+## Golvia 1.4.1 — Wikidata CC0 görünüm verisi
+
+- [x] Wikidata CC0-1.0 toplama: yalnız P54 + P1350 ≥ 1; 35.214 oyuncu keşfi, 59.881 üyelik satırı; statement/maç/yıl provenance'ı.
+- [x] `wikidata-p1350-appearances` kanıt tabanı, `wd-p1350:` sabit kimlikleri, dönem birleştirme/tekilleştirme ve ters aralık koruması.
+- [x] 100 katalog + 12 öncelikli kulüp + 18 A millî takımı; en az 2 hedef seçim kuralı; `data/club-catalog.priority.json` ve `data/football.appearance-targets.json`.
+- [x] 12.290 oyuncu / 32.927 kariyer / 112 kulüp / 18 A millî takımı / 130 seçim üretildi; dataset Git dışı, ham snapshot `.local/` altında.
+- [x] Kalite filtreleri: 2012 sonrası doğumlar düşürüldü, 1880–2027 dışı kariyer yılları atıldı, youth/transfer-only ayrı, reviewed çiftler yinelenmedi.
+- [x] Lisans kapısı korundu: import öncesi 187 link, `grant` sonrası 33.114 link; kaynak kendiliğinden temizlenmiyor.
+- [x] Oyun kapsamı: 55 seçim/51 oyuncu/183 kariyer → 130 seçim/12.326 oyuncu/33.110 kariyer; 8.385 çiftin 4.949'u ortak futbolcu içeriyor.
+- [x] Altı çift, 3-2-1 motoru, Türkçe karakter/alias aramaları ve 124/124 genel + 15/15 PostgreSQL testi; lint/typecheck/build geçti.
+- [x] `PROJECT_CONTEXT.md`, `ROADMAP.md`, `data/README.md` ve `AGENTS.md` 1.4.1 notlarıyla güncellendi.
+- [ ] Transfermarkt site koşulları ve canlı kullanım için hukuk onayı; canlı DB import + yedek/geri yükleme tatbikatı.
+- [ ] `WIKIDATA_USER_AGENT` için repoda kalıcı olmayan, belgelenmiş çalışma ortamı yapılandırması; yeni toplama yalnız ayrı checkpoint yetkisiyle.
+- [ ] Schalke'nin katalog kapsamına alınması veya 4 reviewed kariyerin katalog dışı kalmasının kabulü; Wikidata P1350 eksiklerinin ileride tamamlanması.
+- [ ] Canlıya uygulama, yedek geri yükleme tatbikatı ve kaynak bazlı geri alma provası.
+
+## Golvia 1.4.0 — Futbol veri altyapısı finali
+
+- [x] Yerel DuckDB anlık görüntüsü (6 Temmuz 2026) ve tablo keşfi: players, clubs, games, appearances, transfers, national_teams, competitions, countries.
+- [x] CC0-1.0 lisans kaydı ve kaynak/ayna erişim tarihi; Transfermarkt site koşulları için aday-only sınırı.
+- [x] Appearance satırlarından oyuncu-kulüp ve oyuncu-A millî takım kariyerleri; maç sayısı, tarih aralığı ve turnuva provenance'ı.
+- [x] Transferlerin ayrı `football_transfer` tablosunda tutulması; transferin maç kanıtı sayılmaması.
+- [x] `tm:` ad alanı, kimlik eşleştirme kuralları ve `football_identity_link`; yinelenen oyuncu/kulüp engeli, reviewed veriyi ezmeme.
+- [x] Toplu aday importu (transaction + advisory lock + idempotent), aday kaynaklı `football_link` üretmemesi; yeni revizyonda yalnız incelenmemiş aday kariyer/transfer güncellemesi.
+- [x] Kanıt sınıflandırması: 44.081 appearance-supported, 0 transfer-only, 0 ambiguous; 43.149 kulüp + 932 millî takım; senior/youth/unknown ayrımı ve recovered-club provenance.
+- [x] Eksik kulüpler: 624 kimlik / 8.035 satır geniş tarama; kapsam içi 37 kulüp / 2.369 satır / 416 kariyer yalnız games adlarından kurtarıldı; kapsam dışı 587 kulüp / 5.666 satır atlandı; kapsam içi çözülmemiş 0.
+- [x] Kimlik denetimi: 98/98 confirmed (38 oyuncu, 52 kulüp, 4 ülke, 4 A millî takım); 4 elle incelenmiş kulüp eşlemesi (Lyon, Zenit, Al-Nassr, Al-Hilal) `data/identity-aliases.json` içinde; 5 belirsiz oyuncu pending; João Ricciulli grubu ayrı.
+- [x] A Top 100: reviewed kimliği olan 51 kulübün 51'i eşleşti; kalan 49 kulübün reviewed kimliği yok. Aday 95 seçimde 6.081 oyuncu / 8.753 kariyer; 1.468 ortak çift, 2.997 ortaksız çift.
+- [x] Lisans kapısı: `usage_permission` + `football_source_clearance`; adaylar zorunlu unresolved; `football_link` yalnız cleared + verified + appeared.
+- [x] Kontrollü yayın: `setSourceClearance`, `publishApprovedCareers`, `football_publish_batch`, `revertPublish`; `data:coverage` ve `data:publish` komutları.
+- [x] Reviewed kariyerler korundu: 187 appearance-supported/187 cleared; oyun kapsamında 183 kariyer (4 Schalke kariyeri top-100 dışında), 56 reviewed seçim.
+- [x] İzole PostgreSQL doğrulaması: 14/14 futbol entegrasyonu (clearance backfill, license-gated link, grant→publish→revert, tekrarlı import), 10/10 rekabetçi ve 10/10 hesap testi; 117/117 genel test.
+- [x] Sadeleştirme: tek `selectionCoverage` çekirdeği, tek `summarizeCareers` sınıflandırması, ayrı elle kimlik dosyası; eski kaynak/checkpoint silinmedi.
+- [x] Sürüm 1.4.0 (`package.json` + lock), PROJECT_CONTEXT.md, ROADMAP.md ve data/README.md güncellendi; lint/typecheck/build geçti.
+- [ ] Transfermarkt site koşulları ve canlı kullanım için hukuk onayı; onay sonrası `data:publish grant` ve kontrollü yayın.
+- [ ] `tm-career:` adayları için inceleme/karar ekranı; adayların insan incelemesiyle doğrulanması.
+- [ ] TR2/TR3 ve Serie B, 2012 öncesi tarihî kariyerler, defunct/alt lig/transfer-only kulüp kimlikleri için ek lisanslı kaynak.
+- [ ] 5 pending kimlik, 1 yinelenen oyuncu grubu ve 49 reviewed kimliksiz A kulübü için insan incelemesi.
+- [ ] Canlı veritabanına uygulama, yedek/geri yükleme tatbikatı ve yayın sonrası geri alma provası.
+
+## Golvia 1.3.0 — Profil ve kariyer
+
+- [x] Sonuç kapatma/yeni eşleşme/iptalde eski rakip temizliği ve hükmen sonuç regresyonu.
+- [x] Dört profil bölümü, SVG rank, mevcut eşiklerle ilerleme; ELO formülünü koruma.
+- [x] Gerçek kayıtlardan zirve ELO, seri, son 10 performans, son 30 ELO grafiği ve hükmen istatistikler.
+- [x] Özel, sayfalı detaylı geçmiş; tarihsel rakip rankı ve silinmiş hesap desteği.
+- [x] Kendi sırası, ortak rank renkleri, uygun aktif hesaplarla liderlik tablosu.
+- [x] Oturuma bağlı görünen ad düzenleme; e-posta değişikliğini kapalı tutma ve Google kimliği koruması.
+- [x] 93 genel + 10 rekabetçi PostgreSQL + 10 hesap PostgreSQL + 2 HTTP; Firefox profil/ayar/sıralama mobil ve masaüstü; lint/typecheck/build.
+- [ ] E-posta değişikliğini açmadan doğrulanmış domain ve eski/yeni adres onayı, taze oturum, credential-only/no-Google akışının uçtan uca doğrulanması.
+- [ ] Canlı Google 400 nedeninin sağlayıcı hata ayrıntısıyla kesinleştirilmesi; gerçek OAuth dönüşü ve Resend teslimatı, fiziksel mobil cihaz kontrolü.
+
 - [x] Render e-posta preflight düzeltmesi: Resend yapılandırıldığında SMTP aranmaz; geçersiz/test resend.dev göndericisi genel kayıt/doğrulama/sıfırlamayı açmaz. Eski SMTP uyarısı HEAD sürümündedir; canlı sürüm ve gerçek sağlayıcı teslimatı ayrıca doğrulanmalıdır.
 
 ## Hesap kararlılığı ve sadeleştirme — 8 Kasım 2026

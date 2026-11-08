@@ -1,0 +1,18 @@
+{
+  "version": "priority-clubs-2026-11-08-v1",
+  "note": "Curated extension to the fixed A Top 100 catalog. Historically successful clubs from priority countries that are missing from the top-100 list. They become selectable only when a cleared, verified career link exists.",
+  "clubs": [
+    { "id": "Q172567", "name": "Beşiktaş", "country": "Türkiye", "countryId": "Q43", "tier": "P", "rank": 101 },
+    { "id": "Q192641", "name": "Trabzonspor", "country": "Türkiye", "countryId": "Q43", "tier": "P", "rank": 102 },
+    { "id": "Q170703", "name": "Boca Juniors", "country": "Arjantin", "countryId": "Q414", "tier": "P", "rank": 103 },
+    { "id": "Q15799", "name": "River Plate", "country": "Arjantin", "countryId": "Q414", "tier": "P", "rank": 104 },
+    { "id": "Q35933", "name": "Corinthians", "country": "Brezilya", "countryId": "Q155", "tier": "P", "rank": 105 },
+    { "id": "Q38568", "name": "São Paulo", "country": "Brezilya", "countryId": "Q155", "tier": "P", "rank": 106 },
+    { "id": "Q80955", "name": "Santos", "country": "Brezilya", "countryId": "Q155", "tier": "P", "rank": 107 },
+    { "id": "Q80987", "name": "Fluminense", "country": "Brezilya", "countryId": "Q155", "tier": "P", "rank": 108 },
+    { "id": "Q188277", "name": "Cruzeiro", "country": "Brezilya", "countryId": "Q155", "tier": "P", "rank": 109 },
+    { "id": "Q309480", "name": "Al-Ittihad", "country": "Suudi Arabistan", "countryId": "Q851", "tier": "P", "rank": 110 },
+    { "id": "Q632511", "name": "Seattle Sounders", "country": "ABD", "countryId": "Q30", "tier": "P", "rank": 111 },
+    { "id": "Q204357", "name": "LA Galaxy", "country": "ABD", "countryId": "Q30", "tier": "P", "rank": 112 }
+  ]
+}

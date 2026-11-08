@@ -20,27 +20,31 @@ export function useQuickMatch() {
   const kindRef = useRef<MatchKind>('casual');
   const guestRef = useRef('');
   const ownsSession = useRef(false);
+  const completed = useRef(false);
   const reset = useCallback(() => {
-    socketRef.current?.disconnect(); socketRef.current = null;
+    socketRef.current?.io.removeAllListeners('reconnect_failed');
+    socketRef.current?.removeAllListeners(); socketRef.current?.disconnect(); socketRef.current = null;
     if (ownsSession.current && localStorage.getItem('golvia:guest-token') === sessionStorage.getItem('golvia:resume-token')) localStorage.removeItem('golvia:guest-token');
     ownsSession.current = false;
     sessionStorage.removeItem('golvia:resume-token'); sessionStorage.removeItem('golvia:match-kind');
-    matchIdRef.current = null; setSocket(null); setStatus('idle'); setMatchId(null); setOpponentId(null); setPlayerId(null); setRanked(undefined); setOpponentDeadline(null);
+    matchIdRef.current = null; setSocket(null); setStatus('idle'); setMatchId(null); setOpponentId(null); setOpponentName('Rakip'); setSeat(0); completed.current = false; setPlayerId(null); setRanked(undefined); setOpponentDeadline(null);
   }, []);
   const cancel = useCallback(async () => {
     const connection = socketRef.current;
+    const wasCompleted = completed.current;
     if (connection) {
       try {
         const result = await connection.timeout(5000).emitWithAck('quitQueue', {});
+        if (socketRef.current !== connection) return false;
         if (result.status !== 200) throw new Error('cancel-failed');
-        if (result.result?.reason === 'forfeit') { setRanked(result.result); setStatus('forfeit'); return true; }
+        if (result.result?.reason === 'forfeit' && !wasCompleted) { completed.current = true; setOpponentId(null); setOpponentDeadline(null); setRanked(result.result); setStatus('forfeit'); return true; }
       } catch { setError('Maç iptali doğrulanamadı. Bağlantı gelince yeniden dene.'); return false; }
     }
     reset(); return true;
   }, [reset]);
   const start = useCallback(async (requested: MatchKind = 'casual', guest = '') => {
     if (socketRef.current) return;
-    kindRef.current = requested; setKind(requested); setRanked(undefined); setError(''); setStatus('queue');
+    completed.current = false; setOpponentId(null); setOpponentName('Rakip'); setOpponentDeadline(null); kindRef.current = requested; setKind(requested); setRanked(undefined); setError(''); setStatus('queue');
     sessionStorage.setItem('golvia:match-kind', requested);
     guestRef.current = guest || sessionStorage.getItem('golvia:guest-name') || '';
     if (guest) sessionStorage.setItem('golvia:guest-name', guest);
@@ -58,12 +62,14 @@ export function useQuickMatch() {
       if (!matchIdRef.current) { setStatus('queue'); connection.emit('quickMatch', { kind: kindRef.current, ...(guestRef.current ? { name: guestRef.current, termsAccepted: true, termsVersion: TERMS_VERSION } : {}) }); }
     });
     connection.on('matchFound', (data: { matchId: string; opponentId: string; opponentName?: string; seat: 0 | 1; kind: MatchKind }) => {
+      if (socketRef.current !== connection) return;
+      completed.current = false; setRanked(undefined); setOpponentDeadline(null);
       matchIdRef.current = data.matchId; setMatchId(data.matchId); setOpponentId(data.opponentId); setSeat(data.seat); setKind(data.kind); kindRef.current = data.kind; setStatus('matched');
       setOpponentName(data.opponentName || 'Rakip');
     });
-    connection.on('rankedResult', (result: RankedResult) => { if (result.matchId === matchIdRef.current) { setRanked(result); if (result.reason === 'forfeit') { setStatus('forfeit'); setOpponentDeadline(null); } } });
+    connection.on('rankedResult', (result: RankedResult) => { if (result.matchId === matchIdRef.current) { completed.current = result.status === 'completed'; if (completed.current) { setOpponentId(null); setOpponentDeadline(null); } setRanked(result); if (result.reason === 'forfeit') { setStatus('forfeit'); setOpponentDeadline(null); } } });
     connection.on('matchCancelled', () => { reset(); setError('Maç iptal edildi. ELO değişmedi.'); setStatus('error'); });
-    connection.on('matchClosed', (data: { reason?: string }) => { if (data.reason !== 'forfeit') setError('Maç sonucu kaydedildi. Yeni rakip arayabilirsin.'); });
+    connection.on('matchClosed', (data: { reason?: string }) => { completed.current = true; setOpponentId(null); setOpponentDeadline(null); if (data.reason !== 'forfeit') setError('Maç sonucu kaydedildi. Yeni rakip arayabilirsin.'); });
     connection.on('opponentDisconnected', (data: { deadline: number }) => { setOpponentDeadline(data.deadline); setStatus('opponent-wait'); });
     connection.on('opponentResumed', () => { setOpponentDeadline(null); setStatus('matched'); });
     connection.on('matchError', (data: { message?: string }) => { setError(data.message ?? 'Eşleşme başarısız.'); if (!matchIdRef.current) { reset(); setStatus('error'); } });

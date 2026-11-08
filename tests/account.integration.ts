@@ -159,6 +159,19 @@ test('real PostgreSQL account lifecycle, verification, reset, session and isolat
     assert.notEqual(firstUser.id, secondUser.id);
     assert.equal(secondUser.email, otherEmail);
     await rankedRoundTrip(url, [finalCookie, secondCookie], [firstUser.id, secondUser.id]);
+    assert.notEqual((await post('/update-user', { name: 'Changed' })).status, 200);
+    for (const name of ['', ' ', '<script>', 'x'.repeat(25)]) assert.notEqual((await post('/update-user', { name }, finalCookie)).status, 200);
+    assert.notEqual((await post('/update-user', { name: 'Hijack', userId: secondUser.id }, finalCookie)).status, 200);
+    assert.equal((await post('/update-user', { name: '  Yeni   Oyuncu  ' }, finalCookie)).status, 200);
+    assert.equal((await db.query('SELECT name FROM golvia_auth."user" WHERE id=$1', [firstUser.id])).rows[0].name, 'Yeni Oyuncu');
+    assert.equal((await (await get('/get-session', finalCookie)).json()).user.name, 'Yeni Oyuncu');
+    assert.equal((await db.query('SELECT name FROM golvia_auth."user" WHERE id=$1', [secondUser.id])).rows[0].name, secondUser.name);
+    assert.notEqual((await post('/change-email', { newEmail: `replacement-${randomUUID()}@golvia.test` }, finalCookie)).status, 200);
+    await db.query('INSERT INTO golvia_auth.account(id,"accountId","providerId","userId","createdAt","updatedAt") VALUES($1,$2,\'google\',$3,now(),now())', [randomUUID(), 'synthetic-google-owner', secondUser.id]);
+    assert.notEqual((await post('/change-email', { newEmail: email }, secondCookie)).status, 200);
+    assert.equal((await db.query('SELECT "userId" FROM golvia_auth.account WHERE "accountId"=\'synthetic-google-owner\'')).rows[0].userId, secondUser.id);
+    assert.equal((await (await get('/get-session', secondCookie)).json()).user.email, otherEmail);
+
     assert.notEqual((await post('/delete-user', {}, finalCookie)).status, 200, 'credential accounts require a password for deletion');
     assert.equal((await post('/delete-user', { password: nextPassword, userId: secondUser.id }, finalCookie)).status, 200);
     assert.equal((await db.query('SELECT count(*) FROM golvia_auth."user" WHERE email=$1', [email])).rows[0].count, '0');

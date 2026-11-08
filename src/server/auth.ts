@@ -1,3 +1,4 @@
+import { guestName } from '../lib/guest.ts';
 import { Pool } from 'pg';
 import { betterAuth } from 'better-auth';
 import { username } from 'better-auth/plugins';
@@ -37,6 +38,14 @@ function createAuth() {
     logger: { level: 'error', log: () => console.error('Golvia authentication operation failed') },
     database: pool,
     hooks: { before: createAuthMiddleware(async ctx => {
+      if (ctx.path === '/update-user') {
+        if (Object.keys(ctx.body ?? {}).some(key => key !== 'name')) throw new APIError('BAD_REQUEST', { message: 'Yalnızca oyuncu adı değiştirilebilir.' });
+        const name = guestName(ctx.body?.name);
+        if (!name) throw new APIError('BAD_REQUEST', { message: 'Oyuncu adı 2–24 karakter olmalı.' });
+        const session = await getSessionFromCtx(ctx);
+        if (!session || session.user.status !== 'active') throw new APIError('UNAUTHORIZED', { message: 'Giriş yapmalısın.' });
+        ctx.body.name = name;
+      }
       if (ctx.body && typeof ctx.body.email === 'string') ctx.body.email = normalizeEmail(ctx.body.email);
       if (ctx.path === '/sign-in/social' && ctx.body?.idToken) throw new APIError('BAD_REQUEST', { message: 'Sağlayıcı yönlendirmesiyle devam et.' });
       if (ctx.path === '/verify-email') {
@@ -61,7 +70,7 @@ function createAuth() {
       const result = await pool.query('SELECT status FROM golvia_auth."user" WHERE id=$1', [session.userId]);
       return result.rows[0]?.status === 'active';
     } } } },
-    user: { additionalFields: { status: { type: 'string', defaultValue: 'active', input: false }, termsVersion: { type: 'string', required: false, input: false }, termsAcceptedAt: { type: 'date', required: false, input: false } }, deleteUser: { enabled: true } },
+    user: { changeEmail: { enabled: false, updateEmailWithoutVerification: false }, additionalFields: { status: { type: 'string', defaultValue: 'active', input: false }, termsVersion: { type: 'string', required: false, input: false }, termsAcceptedAt: { type: 'date', required: false, input: false } }, deleteUser: { enabled: true } },
     plugins: [username({ minUsernameLength: 3, maxUsernameLength: 24 }), {
       id: 'google-redirect-nonce',
       init(ctx) {

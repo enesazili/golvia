@@ -6,6 +6,32 @@ import { validateDataset } from './importer.ts';
 import type { Catalog, Dataset, Suggestion } from './types.ts';
 let reviewed: Promise<Dataset> | undefined;
 let top100: Promise<Set<string>> | undefined;
+let priority: Promise<Set<string>> | undefined;
+/**
+ * Curated extension to the fixed A Top 100 list. It stays optional so existing
+ * installs and tests keep working without the file; when present, historically
+ * important clubs from priority countries become selectable once they have a
+ * cleared, verified career link.
+ */
+function priorityIds(): Promise<Set<string>> {
+  priority ??= readFile(join(process.cwd(), 'data/club-catalog.priority.json'), 'utf8').then(raw => {
+    const value: unknown = JSON.parse(raw);
+    const clubs = (value as { clubs?: { id?: unknown }[] })?.clubs;
+    if (!Array.isArray(clubs) || clubs.some(club => typeof club.id !== 'string' || !/^Q\d+$/.test(club.id))) throw new Error('Invalid priority club catalog');
+    const ids = new Set(clubs.map(club => club.id as string));
+    if (ids.size !== clubs.length) throw new Error('Duplicate priority club identity');
+    return ids;
+  }).catch(error => {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return new Set<string>();
+    priority = undefined;
+    throw error;
+  });
+  return priority;
+}
+async function clubIds(): Promise<Set<string>> {
+  const [top, extra] = await Promise.all([top100Ids(), priorityIds()]);
+  return new Set([...top, ...extra]);
+}
 function top100Ids(): Promise<Set<string>> {
   top100 ??= readFile(join(process.cwd(), 'data/club-catalog.top100.json'), 'utf8').then(raw => {
     const value: unknown = JSON.parse(raw);
@@ -43,7 +69,7 @@ function databaseUnavailable(error: unknown): boolean { return process.env.NODE_
 export class FootballRepository {
   constructor(private readonly pool: Pool) {}
   async selections(): Promise<Suggestion[]> {
-    const clubs = [...await top100Ids()];
+    const clubs = [...await clubIds()];
     try {
       const result = await this.pool.query("SELECT id,name,mark,CASE WHEN kind='club' THEN 'Kulüp' ELSE 'A millî takım · Ülke' END AS detail FROM football_entity e WHERE (kind='country' OR (kind='club' AND level='senior' AND id=ANY($1::text[]))) AND EXISTS(SELECT 1 FROM football_link l WHERE l.selection_id=e.id) ORDER BY name,id", [clubs]);
       return result.rows;
@@ -56,7 +82,7 @@ export class FootballRepository {
     }
   }
   async search(kind: 'selection' | 'player', query: string): Promise<Suggestion[]> {
-    const clubs = [...await top100Ids()];
+    const clubs = [...await clubIds()];
     const term = normalize(query).slice(0, 80);
     if (term.length < 2) return [];
     const key = term.replace(/[\\%_]/g, '\\$&');
@@ -86,7 +112,7 @@ export class FootballRepository {
     return result.rows;
   }
   async catalog(): Promise<Catalog> {
-    const clubs = await top100Ids();
+    const clubs = await clubIds();
     let client;
     try { client = await this.pool.connect(); }
     catch (error) {
@@ -94,8 +120,9 @@ export class FootballRepository {
       const data = await reviewedDataset();
       const selections = reviewedSelections(data);
       const catalog: Catalog = { version: data.version, selectionIds: new Set(), playerIds: new Set(), links: new Map(), labels: new Map(data.entities.map(e => [e.id, e.name])) };
+      const linkedPlayers = new Set(data.careers.filter(c => c.verified && c.appeared).map(c => c.playerId));
       for (const e of data.entities) {
-        if (e.kind === 'player') catalog.playerIds.add(e.id);
+        if (e.kind === 'player' && linkedPlayers.has(e.id)) catalog.playerIds.add(e.id);
         else if (selections.has(e.id) && (e.kind === 'country' || (e.kind === 'club' && e.level === 'senior' && clubs.has(e.id)))) catalog.selectionIds.add(e.id);
       }
       const teams = new Map(data.entities.map(e => [e.id, e]));
@@ -112,7 +139,7 @@ export class FootballRepository {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const version = await client.query('SELECT version FROM football_dataset WHERE id=1');
       if (!version.rows[0]) throw new Error('Football dataset not imported');
-      const entities = await client.query("SELECT id,kind,name FROM football_entity e WHERE kind='player' OR ((kind='country' OR (kind='club' AND level='senior' AND id=ANY($1::text[]))) AND EXISTS(SELECT 1 FROM football_link l WHERE l.selection_id=e.id))", [[...clubs]]);
+      const entities = await client.query("SELECT id,kind,name FROM football_entity e WHERE (kind='player' AND EXISTS(SELECT 1 FROM football_link l WHERE l.player_id=e.id)) OR ((kind='country' OR (kind='club' AND level='senior' AND id=ANY($1::text[]))) AND EXISTS(SELECT 1 FROM football_link l WHERE l.selection_id=e.id))", [[...clubs]]);
       const connections = await client.query('SELECT player_id,selection_id FROM football_link');
       await client.query('COMMIT');
       const catalog: Catalog = { version: version.rows[0].version, selectionIds: new Set(), playerIds: new Set(), links: new Map(), labels: new Map() };

@@ -1,0 +1,4 @@
+import type { RankProgress } from '@/lib/rating';
+export function RankBadge({ rank, large = false }: { rank: RankProgress; large?: boolean }) {
+  return <span className={`rank-badge ${large ? 'rank-large' : ''}`} style={{ color: rank.color }} title={rank.name}><svg viewBox="0 0 80 88" fill="none" aria-hidden="true"><path d="M40 3 72 20v30L40 84 8 50V20Z" fill="currentColor" opacity=".12"/><path d="M40 7 68 22v26L40 78 12 48V22Z" stroke="currentColor" strokeWidth="2"/>{Array.from({ length: Math.min(3, rank.symbol + 1) }, (_, i) => <path key={i} d={`m${22 + i * 2} ${32 + i * 9} ${18 - i * 2} 12 ${18 - i * 2} -12`} stroke="currentColor" strokeWidth="3"/>)}{rank.symbol >= 3 && <path d={rank.symbol === 3 ? 'm40 18 7 8-7 8-7-8Z' : rank.symbol === 4 ? 'm40 15 10 10-10 12-10-12Z' : 'm27 19 7 7 6-12 6 12 7-7-4 16H31Z'} fill="currentColor"/>}<path d="M25 67 40 81 55 67" stroke="currentColor" strokeWidth="2"/></svg><span>{rank.name}</span></span>;
+}

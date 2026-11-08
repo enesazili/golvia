@@ -1,6 +1,6 @@
 {
   "name": "golvia",
-  "version": "1.1.0",
+  "version": "1.4.1",
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
@@ -25,6 +25,10 @@
     "data:fetch": "node --env-file-if-exists=.env --import tsx scripts/wikidata-fetch.ts",
     "data:check": "tsx scripts/quality-check.ts",
     "data:opportunities": "tsx scripts/football-opportunities.ts",
+    "data:transfermarkt": "node --env-file-if-exists=.env --import tsx scripts/transfermarkt-extract.ts",
+    "data:appearances": "node --env-file-if-exists=.env --import tsx scripts/wikidata-appearances.ts",
+    "data:coverage": "tsx scripts/football-coverage.ts",
+    "data:publish": "node --env-file=.env --import tsx scripts/football-publish.ts",
     "data:evidence": "tsx scripts/football-evidence.ts",
     "data:review:report": "node --env-file=.env --import tsx scripts/football-review-report.ts",
     "data:review:export": "node --env-file=.env --import tsx scripts/football-review-export.ts",

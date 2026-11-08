@@ -59,6 +59,7 @@ export async function listReviewQueue(pool: Pool, top: { id: string; rank: numbe
     FROM football_career c JOIN football_entity p ON p.id=c.player_id JOIN football_entity t ON t.id=c.team_id
     JOIN football_source s ON s.id=c.source_id LEFT JOIN football_review r ON r.career_id=c.id
     WHERE (NOT(c.verified AND c.appeared) OR r.status='pending') AND t.kind='club' AND t.id=ANY($1::text[]) AND t.level<>'youth'
+    AND c.id LIKE 'wd-statement-%'
     AND NOT EXISTS (SELECT 1 FROM football_career v WHERE v.player_id=c.player_id AND v.team_id=c.team_id AND v.id<>c.id
       AND v.verified AND v.appeared)`, [ids]);
   const confirmed = await pool.query("SELECT c.player_id,c.team_id FROM football_career c JOIN football_entity t ON t.id=c.team_id WHERE c.verified AND c.appeared AND t.kind='club' AND t.id=ANY($1::text[])", [ids]);
